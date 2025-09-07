@@ -1,0 +1,49 @@
+[dates]
+from = "2025-01-01" # first day of the resulting schedule
+to = "2025-12-31" # last day of the resulting schedule
+exceptions = [ # do not create a schedule for these days
+    "2025-02-14",
+    "2025-12-25",
+]
+weekdays = [ # create a schedule only on these weekdays
+    "Mon",
+    "Wed",
+]
+
+[places]
+places = [
+    "Place A",
+    "Place B",
+]
+
+[[group]]
+name = "Maier"
+place = "Place A"
+
+[[group.members]]
+name = "Alice"
+
+[[group.members]]
+name = "Bob"
+
+[[group]]
+name = "Doe"
+place = "Place B"
+
+[[group.members]]
+name = "Charlie"
+
+[rules]
+# if given, sort in the following order, comment lines that should not matter
+sort = [
+    "sortByLeastServices", # everyone works the same amount of hours
+    "sortByLessServicesAtSameWeekday", # everyone should work on each weekday the same amount
+    "sortByOwnPlace", # prefer group within the same place
+    "sortByLastService", # prefer group who were assigned further back in the past
+    "sortByMaxDistanceInGroup", # seperate work for group within one "group" group evenly across the calendar
+    "sortByDifferentPlaceServices", # prefer group who were assigned to a different place less
+]
+# filter by these restrictions
+filter = [
+    "filterSamePlace", # assign group only to their own place
+]
