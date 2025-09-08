@@ -12,7 +12,7 @@ use chrono::{Duration, NaiveDate, Weekday};
 ///
 pub fn get_weekdays(start: &NaiveDate, end: &NaiveDate, weekdays: &[Weekday]) -> Vec<NaiveDate> {
     let mut dates = Vec::new();
-    let mut current = start.clone();
+    let mut current = *start;
 
     while current <= *end {
         if weekdays.contains(&current.weekday()) {
