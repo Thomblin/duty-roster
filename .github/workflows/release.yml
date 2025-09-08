@@ -55,7 +55,6 @@ jobs:
           # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
           # Note that glob pattern is not supported yet.
           bin: duty_roster
-          features: env_logger
           target: ${{ matrix.target }}
           tar: unix
           zip: windows
