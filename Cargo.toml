@@ -1,6 +1,6 @@
 [package]
 name = "duty_roster"
-version = "0.1.0"
+version = "0.1.1"
 description = "Create a schedule for some people & tasks during a given range of dates"
 authors = ["Sebastian Detert <rust-crates@elygor.de>"]
 edition = "2024"
