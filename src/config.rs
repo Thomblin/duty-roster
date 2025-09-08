@@ -101,8 +101,8 @@ mod tests {
         );
         assert_eq!(
             vec![
-                NaiveDate::from_ymd_opt(2025, 2, 14).unwrap(),
-                NaiveDate::from_ymd_opt(2025, 12, 25).unwrap(),
+                NaiveDate::from_ymd_opt(2025, 2, 10).unwrap(),
+                NaiveDate::from_ymd_opt(2025, 12, 24).unwrap(),
             ],
             config.dates.exceptions
         );

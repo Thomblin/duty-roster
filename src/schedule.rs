@@ -70,11 +70,14 @@ pub fn create_schedule(
 
 #[cfg(test)]
 mod tests {
-    use crate::{config::load_config, dates::get_weekdays, schedule::create_schedule};
+    use crate::{
+        config::load_config, csv::assignments_to_csv, dates::get_weekdays,
+        schedule::create_schedule,
+    };
 
     #[test]
     fn create_schedule_should_provide_reasonable_schedule() {
-        let config = load_config("config.toml").unwrap();
+        let config = load_config("test/config.toml").unwrap();
         let dates = get_weekdays(&config.dates.from, &config.dates.to, &config.dates.weekdays);
 
         let (assignments, people) = create_schedule(&dates, &config);
