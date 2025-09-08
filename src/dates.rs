@@ -35,7 +35,7 @@ mod tests {
         let start = NaiveDate::from_ymd_opt(2025, 9, 1).unwrap();
         let end = NaiveDate::from_ymd_opt(2025, 9, 15).unwrap();
 
-        let result = get_weekdays(&start, &end, &vec![Weekday::Thu, Weekday::Fri]);
+        let result = get_weekdays(&start, &end, &[Weekday::Thu, Weekday::Fri]);
 
         let expected = vec![
             NaiveDate::from_ymd_opt(2025, 9, 4).unwrap(),

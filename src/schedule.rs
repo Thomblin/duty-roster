@@ -2,12 +2,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::config::{Config, Rule};
-use crate::schedule::person_state::{GroupState, PersonState};
+use crate::schedule::person_state::GroupState;
 use chrono::NaiveDate;
 use rand::rng;
 use rand::seq::SliceRandom;
 
 mod person_state;
+pub use person_state::PersonState;
 
 #[derive(Debug)]
 pub struct Assignment {
@@ -17,7 +18,7 @@ pub struct Assignment {
 }
 
 pub fn create_schedule(
-    dates: Vec<NaiveDate>,
+    dates: &Vec<NaiveDate>,
     config: &Config,
 ) -> (Vec<Assignment>, Vec<PersonState>) {
     let mut people: Vec<PersonState> = vec![];
@@ -37,7 +38,7 @@ pub fn create_schedule(
     let filter_same_workid = config.rules.filter.contains(&Rule::FilterSamePlace);
 
     for date in dates {
-        if config.dates.exceptions.contains(&date) {
+        if config.dates.exceptions.contains(date) {
             continue;
         }
 
@@ -47,19 +48,19 @@ pub fn create_schedule(
         for place_id in &config.places.places {
             let mut candidates: Vec<&mut PersonState> = people
                 .iter_mut()
-                .filter(|p| !filter_same_workid || &p.place == place_id)
+                .filter(|p| !filter_same_workid || &p.place() == place_id)
                 .collect();
 
             // Sort by precomputed tuple keys
-            candidates.sort_by_key(|p| p.sort_key(date, place_id, &config.rules));
+            candidates.sort_by_key(|p| p.sort_key(*date, place_id, &config.rules));
 
             if let Some(chosen) = candidates.first_mut() {
                 assignments.push(Assignment {
-                    date,
+                    date: *date,
                     place: place_id.clone(),
-                    person: chosen.name.clone(),
+                    person: chosen.name(),
                 });
-                chosen.register_service(date, place_id.clone());
+                chosen.register_service(*date, place_id.clone());
             }
         }
     }
@@ -69,31 +70,31 @@ pub fn create_schedule(
 
 #[cfg(test)]
 mod tests {
-    use chrono::Weekday;
-
-    use crate::{
-        config::load_config, csv::assignments_to_csv, dates::get_weekdays,
-        schedule::create_schedule,
-    };
+    use crate::{config::load_config, dates::get_weekdays, schedule::create_schedule};
 
     #[test]
     fn create_schedule_should_provide_reasonable_schedule() {
         let config = load_config("config.toml").unwrap();
         let dates = get_weekdays(&config.dates.from, &config.dates.to, &config.dates.weekdays);
 
-        let (assignments, people) = create_schedule(dates, &config);
+        let (assignments, people) = create_schedule(&dates, &config);
 
-        println!("{}", assignments_to_csv(assignments));
+        assert_eq!(
+            assignments.len(),
+            (dates.len() - config.dates.exceptions.len()) * config.places.places.len()
+        );
 
-        for person in people {
-            print!("{}, total: {}", person.name, person.total_services());
-            for (day, count) in person.weekday_counts() {
-                print!(", {}: {}", day, count);
-            }
-            print!(", different_place: {}", person.different_place_services());
-            println!();
-        }
+        assert_eq!(
+            assignments.len(),
+            people.iter().map(|p| p.total_services()).sum()
+        );
 
-        panic!("done");
+        assert_eq!(
+            assignments.len(),
+            people
+                .iter()
+                .map(|p| p.weekday_counts().values().copied().sum::<usize>())
+                .sum()
+        );
     }
 }

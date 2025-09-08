@@ -14,9 +14,9 @@ pub(super) struct GroupState {
 }
 
 #[derive(Clone, Debug)]
-pub(super) struct PersonState {
-    pub(super) name: String,
-    pub(super) place: String,
+pub struct PersonState {
+    name: String,
+    place: String,
 
     // tracking
     total_services: usize,
@@ -90,16 +90,24 @@ impl PersonState {
             .collect()
     }
 
-    pub(super) fn total_services(&self) -> usize {
+    pub fn total_services(&self) -> usize {
         self.total_services
     }
 
-    pub(super) fn weekday_counts(&self) -> HashMap<Weekday, usize> {
+    pub fn weekday_counts(&self) -> HashMap<Weekday, usize> {
         self.weekday_counts.clone()
     }
 
-    pub(super) fn different_place_services(&self) -> usize {
+    pub fn different_place_services(&self) -> usize {
         self.different_place_services
+    }
+
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn place(&self) -> String {
+        self.place.clone()
     }
 }
 

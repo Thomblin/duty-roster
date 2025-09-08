@@ -6,7 +6,7 @@ use std::fs;
 
 /// configuration root
 #[derive(Deserialize, Debug)]
-pub(crate) struct Config {
+pub struct Config {
     pub dates: Dates,
     pub places: Places,
     pub group: Vec<Group>,
@@ -15,13 +15,13 @@ pub(crate) struct Config {
 
 /// the schedule can create tasks per day per place
 #[derive(Deserialize, Debug)]
-pub(crate) struct Places {
+pub struct Places {
     pub places: Vec<String>,
 }
 
 /// date restrictions for schedule
 #[derive(Deserialize, Debug)]
-pub(crate) struct Dates {
+pub struct Dates {
     /// first day of schedule
     pub from: NaiveDate,
     /// last day of schedule
@@ -36,7 +36,7 @@ pub(crate) struct Dates {
 /// several people can be assigned to a group
 /// work for people within one group is spreat evenly across the calendar
 #[derive(Deserialize, Debug)]
-pub(crate) struct Group {
+pub struct Group {
     /// name of group (for example family name or task force)
     pub name: String,
     /// group can be assigned to places where work needs to be done, compare struct Places
@@ -47,14 +47,14 @@ pub(crate) struct Group {
 
 /// member of a group
 #[derive(Deserialize, Debug, PartialEq)]
-pub(crate) struct Member {
+pub struct Member {
     /// name of this member
     pub name: String,
 }
 
 /// set of rules to apply when creating the schedule
 #[derive(Deserialize, Debug)]
-pub(crate) struct Rules {
+pub struct Rules {
     /// sort member by these rules to find best match for next task
     pub sort: Vec<Rule>,
     /// filter member according to these rules for next task
