@@ -1,3 +1,5 @@
+//! core business logic, parse configuration and create the schedule
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -10,6 +12,7 @@ use rand::seq::SliceRandom;
 mod person_state;
 pub use person_state::PersonState;
 
+/// Assignment captures a date, task(place) and person to do the job
 #[derive(Debug)]
 pub struct Assignment {
     pub date: NaiveDate,
@@ -17,6 +20,7 @@ pub struct Assignment {
     pub person: String,
 }
 
+/// parse the configuration and assign someone on the given dates for the defined tasks(places)
 pub fn create_schedule(
     dates: &Vec<NaiveDate>,
     config: &Config,

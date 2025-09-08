@@ -1,3 +1,5 @@
+//! executable part of this library. read configuration and generate a csv file with a schedule
+
 use clap::Parser;
 use duty_roster::{
     PersonState,

@@ -1,3 +1,5 @@
+//! helper function to store the generated assignments into a csv String
+
 use chrono::NaiveDate;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -6,6 +8,7 @@ use std::{
 
 use crate::schedule::Assignment;
 
+/// convert assignments to csv String
 pub fn assignments_to_csv(assignments: &Vec<Assignment>) -> Result<String, Box<dyn Error>> {
     let mut places: BTreeSet<String> = BTreeSet::new();
     let mut data: BTreeMap<NaiveDate, BTreeMap<String, String>> = BTreeMap::new();
