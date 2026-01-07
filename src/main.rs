@@ -11,9 +11,11 @@ use duty_roster::
 };
 use std::{error::Error, fs::File, io::Write};
 
-/// Generate a schedule for given people and places/tasks
+/// Duty Roster - Generate and manage schedules for people and places/tasks
+/// 
+/// By default, this application runs in GUI mode. Use the --cli flag to run in command-line mode.
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version, about = "Duty Roster - Generate and manage schedules for people and places/tasks", long_about = None)]
 struct Args {
     /// file with settings to create the schedule
     #[arg(short, long, default_value = "config.toml")]
@@ -23,20 +25,15 @@ struct Args {
     #[arg(short, long, default_value = "schedule.csv")]
     out: String,
 
-    /// run in GUI mode
-    #[arg(short, long)]
-    gui: bool,
+    /// run in CLI mode (no GUI)
+    #[arg(short = 'C', long)]
+    cli: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
-    if args.gui {
-        // Run in GUI mode
-        println!("Starting GUI mode...");
-        gui::run()?;
-        Ok(())
-    } else {
+    if args.cli {
         // Run in CLI mode
         println!("Running in CLI mode...");
         let config = load_config(&args.config)?;
@@ -48,9 +45,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             Ok(_) => println!("stored schedule to {}", args.out),
             Err(e) => println!("error: could not store results: {e:?}"),
         };
-        
-        Ok(())
+    } else {
+        // Run in GUI mode (default)
+        println!("Starting GUI mode...");
+        gui::run()?;
     }
+    
+    Ok(())
 }
 
 fn store_csv(

@@ -39,7 +39,7 @@ impl PersonState {
         }
     }
 
-    pub(super) fn register_service(&mut self, date: NaiveDate, place: String) {
+    pub fn register_service(&mut self, date: NaiveDate, place: String) {
         self.total_services += 1;
         self.last_service = Some(date);
         *self.weekday_counts.entry(date.weekday()).or_default() += 1;
@@ -49,6 +49,42 @@ impl PersonState {
         if place != self.place {
             self.different_place_services += 1;
         }
+    }
+    
+    /// Unregister a service for this person
+    /// 
+    /// This is used when swapping assignments between people
+    pub fn unregister_service(&mut self, date: NaiveDate, place: String) {
+        if self.total_services > 0 {
+            self.total_services -= 1;
+        }
+        
+        // Update weekday counts
+        if let Some(count) = self.weekday_counts.get_mut(&date.weekday()) {
+            if *count > 0 {
+                *count -= 1;
+                if *count == 0 {
+                    self.weekday_counts.remove(&date.weekday());
+                }
+            }
+        }
+        
+        // Update different place services
+        if place != self.place && self.different_place_services > 0 {
+            self.different_place_services -= 1;
+        }
+        
+        // Update last service date if needed
+        if self.last_service == Some(date) {
+            // Find the next most recent service date
+            // For simplicity, we'll just set it to None
+            // In a more complete implementation, we would track all service dates
+            self.last_service = None;
+        }
+        
+        // Note: We don't update the group_state here because that would affect other people
+        // in the same group. In a real implementation, we might want to recalculate the
+        // group's last service date based on all members.
     }
 
     /// Convert a person into a sortable key tuple according to rules

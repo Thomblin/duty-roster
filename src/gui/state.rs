@@ -2,9 +2,7 @@ use iced::Command;
 use chrono::NaiveDate;
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::config::load_config;
-use crate::dates::get_weekdays;
-use crate::schedule::{create_schedule, Assignment, PersonState};
+use crate::schedule::{Assignment, PersonState};
 
 use super::{CellPosition, Message, Tab};
 use super::assignment;
@@ -58,22 +56,13 @@ impl AppState {
                 let cell2_info = self.get_cell_info(position);
                 
                 if let (Some((date1, place1, person1)), Some((date2, place2, person2))) = (cell1_info, cell2_info) {
-                    // Swap the assignments
-                    if assignment::swap_assignments(
+                    // Swap the assignments and update person statistics
+                    assignment::swap_assignments(
                         &mut self.assignments,
                         &mut self.people,
                         date1, &place1, &person1,
                         date2, &place2, &person2
-                    ) {
-                        // Regenerate the people states
-                        if let Some(config_path) = &self.selected_config {
-                            if let Ok(config) = load_config(config_path) {
-                                let dates = get_weekdays(&config.dates.from, &config.dates.to, &config.dates.weekdays);
-                                let (_, people) = create_schedule(&dates, &config);
-                                self.people = people;
-                            }
-                        }
-                    }
+                    );
                 }
                 
                 Command::none()
