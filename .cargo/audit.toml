@@ -8,4 +8,4 @@ ignore = [
 [output]
 format = "terminal"
 quiet = false
-show-tree = true
+show_tree = true

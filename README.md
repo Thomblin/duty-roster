@@ -141,6 +141,22 @@ cargo build
 cargo test
 ```
 
+## Security
+
+### Known Advisories
+
+This project depends on the `iced` GUI library (v0.12.1), which has transitive dependencies with the following security advisories:
+
+- **RUSTSEC-2024-0384**: The `instant` crate is unmaintained (transitive dependency)
+- **RUSTSEC-2024-0436**: The `paste` crate is unmaintained (transitive dependency)
+- **RUSTSEC-2026-0002**: The `lru` crate has a soundness issue in the `IterMut` implementation (transitive dependency)
+
+These issues are in transitive dependencies that we cannot directly control without upgrading `iced` to a newer version, which would require significant code changes. We are monitoring these issues and will address them in a future release.
+
+### Security Reporting
+
+If you discover a security vulnerability in this project, please report it by creating an issue. We appreciate your help in disclosing the issue responsibly.
+
 ## License
 
 MIT
