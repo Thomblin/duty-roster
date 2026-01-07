@@ -356,3 +356,394 @@ impl Application for DutyRosterApp {
             .into()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+    use std::time::Instant;
+    use crate::schedule::person_state::{PersonState, GroupState};
+    use std::rc::Rc;
+    use std::cell::RefCell;
+
+    fn create_test_date(year: i32, month: u32, day: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(year, month, day).unwrap()
+    }
+
+    fn create_test_app() -> DutyRosterApp {
+        DutyRosterApp {
+            state: AppState::new(),
+        }
+    }
+    
+    fn create_test_assignments() -> Vec<Assignment> {
+        vec![
+            Assignment {
+                date: create_test_date(2025, 9, 1),
+                place: "Place A".to_string(),
+                person: "Person1".to_string(),
+            },
+            Assignment {
+                date: create_test_date(2025, 9, 2),
+                place: "Place B".to_string(),
+                person: "Person2".to_string(),
+            },
+        ]
+    }
+    
+    fn create_test_people() -> Vec<PersonState> {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        
+        let mut person1 = PersonState::new(
+            "Person1".to_string(),
+            "Place A".to_string(),
+            Rc::clone(&group_state),
+        );
+        
+        let mut person2 = PersonState::new(
+            "Person2".to_string(), 
+            "Place B".to_string(),
+            Rc::clone(&group_state),
+        );
+        
+        person1.register_service(create_test_date(2025, 9, 1), "Place A".to_string());
+        person2.register_service(create_test_date(2025, 9, 2), "Place B".to_string());
+        
+        vec![person1, person2]
+    }
+
+    #[test]
+    fn test_new() {
+        let (app, _command) = DutyRosterApp::new(());
+        assert_eq!(app.state.config_files.len(), 0);
+        assert_eq!(app.state.selected_config, None);
+    }
+
+    #[test]
+    fn test_update_config_selected() {
+        let mut app = create_test_app();
+        
+        // Test selecting a config
+        let config_path = "test_config.toml".to_string();
+        let message = Message::ConfigSelected(config_path.clone());
+        
+        let _cmd = app.update(message);
+        
+        assert_eq!(app.state.selected_config, Some(config_path));
+    }
+
+    #[test]
+    fn test_update_tab_selected() {
+        let mut app = create_test_app();
+        
+        // Test selecting a tab
+        let message = Message::TabSelected(Tab::Summary);
+        
+        let _cmd = app.update(message);
+        
+        assert_eq!(app.state.active_tab, Tab::Summary);
+    }
+
+    #[test]
+    fn test_update_cell_clicked() {
+        let mut app = create_test_app();
+        
+        // Test clicking a cell
+        let position = CellPosition { row: 1, column: 1 };
+        let message = Message::CellClicked(position);
+        
+        let _cmd = app.update(message);
+        
+        assert_eq!(app.state.selected_cell, Some(position));
+    }
+
+    #[test]
+    fn test_update_cell_hovered() {
+        let mut app = create_test_app();
+        
+        // Test hovering over a cell
+        let position = CellPosition { row: 1, column: 1 };
+        let message = Message::CellHovered(position);
+        
+        let _cmd = app.update(message);
+        
+        assert_eq!(app.state.hovered_cell, Some(position));
+    }
+
+    #[test]
+    fn test_update_mouse_left() {
+        let mut app = create_test_app();
+        
+        // First set a hovered cell
+        app.state.hovered_cell = Some(CellPosition { row: 1, column: 1 });
+        
+        // Test mouse leaving
+        let message = Message::MouseLeft;
+        
+        let _cmd = app.update(message);
+        
+        assert_eq!(app.state.hovered_cell, None);
+    }
+
+    #[test]
+    fn test_update_show_success_message() {
+        let mut app = create_test_app();
+        
+        // Test showing a success message
+        let message_text = "Success!".to_string();
+        let message = Message::ShowSuccessMessage(message_text.clone());
+        
+        let _cmd = app.update(message);
+        
+        assert_eq!(app.state.success_message, Some(message_text));
+        assert!(app.state.success_message_expires_at.is_some());
+    }
+
+    #[test]
+    fn test_update_check_message_expiry() {
+        let mut app = create_test_app();
+        
+        // Set a success message that has expired
+        app.state.success_message = Some("Test message".to_string());
+        app.state.success_message_expires_at = Some(Instant::now());
+        
+        // Let's make sure it's expired
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        
+        // Test checking message expiry
+        let message = Message::CheckMessageExpiry;
+        
+        let _cmd = app.update(message);
+        
+        assert_eq!(app.state.success_message, None);
+        assert_eq!(app.state.success_message_expires_at, None);
+    }
+
+    #[test]
+    fn test_update_configs_loaded() {
+        let mut app = create_test_app();
+        
+        // Test loading configs
+        let configs = vec!["config1.toml".to_string(), "config2.toml".to_string()];
+        let message = Message::ConfigsLoaded(Ok(configs.clone()));
+        
+        let _cmd = app.update(message);
+        
+        assert_eq!(app.state.config_files, configs);
+    }
+
+    #[test]
+    fn test_update_configs_loaded_error() {
+        let mut app = create_test_app();
+        
+        // Test loading configs with error
+        let error_message = "Failed to load configs".to_string();
+        let message = Message::ConfigsLoaded(Err(error_message.clone()));
+        
+        let _cmd = app.update(message);
+        
+        // The app adds "Error loading configs: " prefix to the error message
+        let expected_error = format!("Error loading configs: {}", error_message);
+        assert_eq!(app.state.error, Some(expected_error));
+    }
+
+    #[test]
+    fn test_view() {
+        let app = create_test_app();
+        
+        // Test the view function
+        let _element = app.view();
+        
+        // We can't easily test the actual UI rendering, but we can ensure the function runs without panicking
+        assert_eq!(app.state.selected_config, None);
+    }
+    
+    #[test]
+    fn test_update_refresh_config_list() {
+        let mut app = create_test_app();
+        
+        // Test refreshing config list
+        let message = Message::RefreshConfigList;
+        
+        // This should return a Command
+        let cmd = app.update(message);
+        
+        // We can't easily test the Command itself, but we can verify it's not Command::none()
+        // Just ensure the test runs without panicking
+        let _ = cmd;
+    }
+    
+    #[test]
+    fn test_update_generate_schedule_no_config() {
+        let mut app = create_test_app();
+        
+        // Test generating a schedule without a selected config
+        let message = Message::GenerateSchedule;
+        
+        // This should return Command::none()
+        let cmd = app.update(message);
+        
+        // We can't easily test if it's Command::none(), so just ensure it runs without panicking
+        let _ = cmd;
+    }
+    
+    #[test]
+    fn test_update_save_schedule_with_date_no_assignments() {
+        let mut app = create_test_app();
+        
+        // Set a selected config but no assignments
+        app.state.selected_config = Some("test_config.toml".to_string());
+        
+        // Test saving a schedule with date but no assignments
+        let message = Message::SaveScheduleWithDate;
+        
+        let _cmd = app.update(message);
+        
+        // Verify an error was set
+        assert_eq!(app.state.error, Some("No schedule to save".to_string()));
+    }
+    
+    #[test]
+    fn test_update_save_schedule_with_date_with_assignments() {
+        let mut app = create_test_app();
+        
+        // Set a selected config and assignments
+        app.state.selected_config = Some("test_config.toml".to_string());
+        app.state.assignments = create_test_assignments();
+        
+        // Test saving a schedule with date
+        let message = Message::SaveScheduleWithDate;
+        
+        // This should return a Command
+        let cmd = app.update(message);
+        
+        // We can't easily test the Command itself, just ensure it runs without panicking
+        let _ = cmd;
+    }
+    
+    #[test]
+    fn test_update_show_success_message_detailed() {
+        let mut app = create_test_app();
+        
+        // Test showing a success message
+        let message_text = "Success!".to_string();
+        let message = Message::ShowSuccessMessage(message_text.clone());
+        
+        let _cmd = app.update(message);
+        
+        // Verify the success message was set
+        assert_eq!(app.state.success_message, Some(message_text));
+        assert!(app.state.success_message_expires_at.is_some());
+    }
+    
+    #[test]
+    fn test_update_schedule_saved_success() {
+        let mut app = create_test_app();
+        
+        // Test handling a successful schedule save
+        // Note: In the current implementation, this just returns Command::none()
+        let message = Message::ScheduleSaved(Ok(()));
+        
+        let _cmd = app.update(message);
+        
+        // No assertions needed as this just returns Command::none()
+    }
+    
+    #[test]
+    fn test_update_schedule_generated_success() {
+        let mut app = create_test_app();
+        
+        // Set up a selected config
+        app.state.selected_config = Some("test_config.toml".to_string());
+        
+        // Create test assignments
+        let date = NaiveDate::from_ymd_opt(2025, 9, 1).unwrap();
+        let assignments = vec![
+            Assignment {
+                date,
+                place: "Place A".to_string(),
+                person: "Person1".to_string(),
+            },
+        ];
+        
+        // Test handling a successful schedule generation
+        let message = Message::ScheduleGenerated(Ok(assignments.clone()));
+        
+        let _cmd = app.update(message);
+        
+        // Verify assignments were stored
+        assert_eq!(app.state.assignments.len(), 1);
+        assert_eq!(app.state.assignments[0].date, date);
+        assert_eq!(app.state.assignments[0].place, "Place A");
+        assert_eq!(app.state.assignments[0].person, "Person1");
+        
+        // Verify selected cell was reset
+        assert_eq!(app.state.selected_cell, None);
+    }
+    
+    #[test]
+    fn test_update_schedule_saved_error() {
+        let mut app = create_test_app();
+        
+        // Test handling a failed schedule save
+        let error_message = "Failed to save schedule".to_string();
+        let message = Message::ScheduleSaved(Err(error_message.clone()));
+        
+        let _cmd = app.update(message);
+        
+        // Verify the error was stored with the prefix
+        assert_eq!(app.state.error, Some(format!("Error saving schedule: {}", error_message)));
+    }
+    
+    #[test]
+    fn test_update_schedule_generated_error() {
+        let mut app = create_test_app();
+        
+        // Test handling a failed schedule generation
+        let error_message = "Failed to generate schedule".to_string();
+        let message = Message::ScheduleGenerated(Err(error_message.clone()));
+        
+        let _cmd = app.update(message);
+        
+        // Verify the error was stored with the prefix
+        assert_eq!(app.state.error, Some(format!("Error generating schedule: {}", error_message)));
+    }
+    
+    #[test]
+    fn test_update_save_schedule() {
+        let mut app = create_test_app();
+        
+        // Add test assignments
+        let date = NaiveDate::from_ymd_opt(2025, 9, 1).unwrap();
+        app.state.assignments = vec![
+            Assignment {
+                date,
+                place: "Place A".to_string(),
+                person: "Person1".to_string(),
+            },
+        ];
+        
+        // Add test people
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut person1 = PersonState::new(
+            "Person1".to_string(),
+            "Place A".to_string(),
+            Rc::clone(&group_state),
+        );
+        person1.register_service(date, "Place A".to_string());
+        app.state.people = vec![person1];
+        
+        // Test handling a save schedule message
+        let filename = "test_schedule.csv".to_string();
+        let message = Message::SaveSchedule(filename.clone());
+        
+        let cmd = app.update(message);
+        
+        // Verify a command was returned (we can't easily test the actual command)
+        // Just check that it's not empty by using a dummy variable
+        let _ = cmd;
+        
+        // The test passes if we get here without panicking
+        assert!(true);
+    }
+}

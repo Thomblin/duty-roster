@@ -44,11 +44,12 @@ impl TableState {
 
     /// Select a cell in the table
     pub fn select_cell(&mut self, position: CellPosition) -> Option<CellPosition> {
-        let prev_selected = self.selected_cell.take();
+        let prev_selected = self.selected_cell;
 
         if prev_selected == Some(position) {
             // Clicked same cell twice - deselect
-            None
+            self.selected_cell = None;
+            prev_selected
         } else {
             // Select new cell
             self.selected_cell = Some(position);
@@ -267,5 +268,149 @@ impl button::StyleSheet for CellButtonStyle {
             shadow_offset: iced::Vector::default(),
             ..Default::default()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+
+    fn create_test_date(year: i32, month: u32, day: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(year, month, day).unwrap()
+    }
+
+    fn create_test_assignments() -> Vec<Assignment> {
+        vec![
+            Assignment {
+                date: create_test_date(2025, 9, 1),
+                place: "Place A".to_string(),
+                person: "Person1".to_string(),
+            },
+            Assignment {
+                date: create_test_date(2025, 9, 2),
+                place: "Place B".to_string(),
+                person: "Person2".to_string(),
+            },
+        ]
+    }
+
+    #[test]
+    fn test_table_state_new() {
+        let assignments = create_test_assignments();
+        let table_state = TableState::new(&assignments);
+        
+        // Check that the table state was created correctly
+        assert_eq!(table_state.dates.len(), 2);
+        assert_eq!(table_state.places.len(), 2);
+        assert!(table_state.places.contains("Place A"));
+        assert!(table_state.places.contains("Place B"));
+        assert!(table_state.selected_cell.is_none());
+    }
+
+    #[test]
+    fn test_table_state_select_cell_first_selection() {
+        let assignments = create_test_assignments();
+        let mut table_state = TableState::new(&assignments);
+        
+        // Test selecting a cell
+        let pos = CellPosition { row: 1, column: 1 };
+        let prev = table_state.select_cell(pos);
+        
+        assert!(prev.is_none());
+        assert_eq!(table_state.selected_cell, Some(pos));
+    }
+    
+    #[test]
+    fn test_table_state_deselect_cell() {
+        // Create a simple TableState directly
+        let mut table_state = TableState {
+            selected_cell: None,
+            data: BTreeMap::new(),
+            dates: Vec::new(),
+            places: BTreeSet::new(),
+        };
+        
+        // Test selecting a cell
+        let pos = CellPosition { row: 1, column: 1 };
+        let prev = table_state.select_cell(pos);
+        
+        // Should return None (no previous selection) and set the selected cell
+        assert!(prev.is_none());
+        assert_eq!(table_state.selected_cell, Some(pos));
+        
+        // Test selecting the same cell again (should deselect)
+        let prev = table_state.select_cell(pos);
+        
+        // Should return the previous selection and clear the selected cell
+        assert_eq!(prev, Some(pos));
+        assert!(table_state.selected_cell.is_none());
+    }
+    
+    #[test]
+    fn test_table_state_select_different_cell() {
+        let assignments = create_test_assignments();
+        let mut table_state = TableState::new(&assignments);
+        
+        // First select a cell
+        let pos1 = CellPosition { row: 1, column: 1 };
+        let _ = table_state.select_cell(pos1);
+        
+        // Then select a different cell
+        let pos2 = CellPosition { row: 2, column: 2 };
+        let prev = table_state.select_cell(pos2);
+        
+        assert_eq!(prev, Some(pos1));
+        assert_eq!(table_state.selected_cell, Some(pos2));
+    }
+
+    #[test]
+    fn test_get_cell_info() {
+        let assignments = create_test_assignments();
+        let table_state = TableState::new(&assignments);
+        
+        // Test getting valid cell info
+        let cell_info = table_state.get_cell_info(CellPosition { row: 1, column: 1 });
+        assert!(cell_info.is_some());
+        
+        if let Some((date, place, person)) = cell_info {
+            assert_eq!(date, create_test_date(2025, 9, 1));
+            assert_eq!(place, "Place A");
+            assert_eq!(person, "Person1");
+        }
+        
+        // Test getting invalid cell info (header row)
+        let cell_info = table_state.get_cell_info(CellPosition { row: 0, column: 1 });
+        assert!(cell_info.is_none());
+        
+        // Test getting invalid cell info (date column)
+        let cell_info = table_state.get_cell_info(CellPosition { row: 1, column: 0 });
+        assert!(cell_info.is_none());
+        
+        // Test getting invalid cell info (out of bounds)
+        let cell_info = table_state.get_cell_info(CellPosition { row: 10, column: 10 });
+        assert!(cell_info.is_none());
+    }
+
+    #[test]
+    fn test_create_table_from_assignments() {
+        let assignments = create_test_assignments();
+        
+        // Create a table with no selection or hover
+        let element = create_table_from_assignments(&assignments, None, None);
+        
+        // We can't easily test the actual UI rendering, but we can ensure the function runs without panicking
+        // and returns an Element
+        assert!(element.as_widget().children().len() > 0);
+        
+        // Create a table with selection
+        let selected_cell = Some(CellPosition { row: 1, column: 1 });
+        let element = create_table_from_assignments(&assignments, selected_cell.as_ref(), None);
+        assert!(element.as_widget().children().len() > 0);
+        
+        // Create a table with hover
+        let hovered_cell = Some(CellPosition { row: 1, column: 1 });
+        let element = create_table_from_assignments(&assignments, None, hovered_cell.as_ref());
+        assert!(element.as_widget().children().len() > 0);
     }
 }

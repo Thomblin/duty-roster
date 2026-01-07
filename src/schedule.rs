@@ -4,13 +4,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::config::{Config, Rule};
-use crate::schedule::person_state::GroupState;
 use chrono::NaiveDate;
 use rand::rng;
 use rand::seq::SliceRandom;
 
-mod person_state;
+pub mod person_state;
 pub use person_state::PersonState;
+pub use person_state::GroupState;
 
 /// Assignment captures a date, task(place) and person to do the job
 #[derive(Debug, Clone)]
@@ -75,7 +75,7 @@ pub fn create_schedule(
 #[cfg(test)]
 mod tests {
     use crate::{
-        config::load_config, csv::assignments_to_csv, dates::get_weekdays,
+        config::load_config, dates::get_weekdays,
         schedule::create_schedule,
     };
 
