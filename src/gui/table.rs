@@ -174,7 +174,7 @@ pub fn create_table_from_assignments<'a>(
                 .map(|pos| pos.row == cell_position.row && pos.column == cell_position.column)
                 .unwrap_or(false);
                 
-            let is_hovered = hovered_cell
+            let _is_hovered = hovered_cell
                 .map(|pos| pos.row == cell_position.row && pos.column == cell_position.column)
                 .unwrap_or(false);
             

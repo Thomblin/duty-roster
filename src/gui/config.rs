@@ -47,10 +47,11 @@ pub fn generate_filename(config_path: String) -> String {
         .and_then(|s| s.to_str())
         .unwrap_or("schedule");
     
-    let date_stamp = Local::now().format("%Y_%m_%d").to_string();
+    // Include date and time (hours and minutes) in the filename
+    let datetime_stamp = Local::now().format("%Y_%m_%d_%H_%M").to_string();
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
     
-    let out_path = parent.join(format!("{file_stem}_{date_stamp}.csv"));
+    let out_path = parent.join(format!("{file_stem}_{datetime_stamp}.csv"));
     out_path.to_string_lossy().to_string()
 }
 

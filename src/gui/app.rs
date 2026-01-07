@@ -42,6 +42,8 @@ pub enum Message {
     MouseEntered(CellPosition),
     MouseLeft,
     Error(String),
+    CheckMessageExpiry,
+    ShowSuccessMessage(String),
 }
 
 /// Main application
@@ -168,9 +170,16 @@ impl Application for DutyRosterApp {
                         }
                         
                         // Save the file
+                        let filename_for_message = filename.clone(); // Clone for the success message
                         Command::perform(
                             utils::save_file(filename, csv_content, summary_content),
-                            Message::ScheduleSaved
+                            move |result| {
+                                if result.is_ok() {
+                                    Message::ShowSuccessMessage(format!("Schedule saved to {}", filename_for_message))
+                                } else {
+                                    Message::ScheduleSaved(result)
+                                }
+                            }
                         )
                     },
                     Err(e) => {
@@ -180,7 +189,32 @@ impl Application for DutyRosterApp {
                 }
             },
             Message::ScheduleSaved(Ok(())) => {
-                // Successfully saved
+                // Successfully saved - this is now handled directly in the SaveSchedule handler
+                Command::none()
+            },
+            
+            Message::ShowSuccessMessage(message) => {
+                self.state.success_message = Some(message);
+                self.state.success_message_expires_at = Some(std::time::Instant::now() + std::time::Duration::from_secs(3));
+                
+                // Schedule a check after 3 seconds
+                Command::perform(
+                    async {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                        Message::CheckMessageExpiry
+                    },
+                    |msg| msg
+                )
+            },
+            
+            Message::CheckMessageExpiry => {
+                // Check if the success message has expired
+                if let Some(expires_at) = self.state.success_message_expires_at {
+                    if std::time::Instant::now() >= expires_at {
+                        self.state.success_message = None;
+                        self.state.success_message_expires_at = None;
+                    }
+                }
                 Command::none()
             },
             Message::ScheduleSaved(Err(e)) => {
@@ -238,6 +272,11 @@ impl Application for DutyRosterApp {
         // Display error if any
         if let Some(error) = &self.state.error {
             content = content.push(text(format!("Error: {}", error)).size(12).style(iced::Color::from_rgb(0.8, 0.0, 0.0)));
+        }
+        
+        // Display success message if any
+        if let Some(message) = &self.state.success_message {
+            content = content.push(text(message).size(12).style(iced::Color::from_rgb(0.0, 0.6, 0.0)));
         }
 
         // Add tabs if content is available
