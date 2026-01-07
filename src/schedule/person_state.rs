@@ -236,55 +236,71 @@ mod tests {
 
         assert_eq!(p.different_place_services, 1);
     }
-    
+
     #[test]
     fn unregister_service_decrements_total_services() {
         let group_state = Rc::new(RefCell::new(GroupState::default()));
-        let mut p = PersonState::new("Alice".to_string(), "A".to_string(), Rc::clone(&group_state));
+        let mut p = PersonState::new(
+            "Alice".to_string(),
+            "A".to_string(),
+            Rc::clone(&group_state),
+        );
         let date = d(2023, 9, 6);
-        
+
         p.register_service(date, "A".to_string());
         assert_eq!(p.total_services, 1);
-        
+
         p.unregister_service(date, "A".to_string());
         assert_eq!(p.total_services, 0);
     }
-    
+
     #[test]
     fn unregister_service_decrements_weekday_counts() {
         let group_state = Rc::new(RefCell::new(GroupState::default()));
-        let mut p = PersonState::new("Alice".to_string(), "A".to_string(), Rc::clone(&group_state));
+        let mut p = PersonState::new(
+            "Alice".to_string(),
+            "A".to_string(),
+            Rc::clone(&group_state),
+        );
         let wed = d(2023, 9, 6); // Wednesday
-        
+
         p.register_service(wed, "A".to_string());
         assert_eq!(*p.weekday_counts.get(&Weekday::Wed).unwrap(), 1);
-        
+
         p.unregister_service(wed, "A".to_string());
         assert!(!p.weekday_counts.contains_key(&Weekday::Wed));
     }
-    
+
     #[test]
     fn unregister_service_decrements_different_place_services() {
         let group_state = Rc::new(RefCell::new(GroupState::default()));
-        let mut p = PersonState::new("Alice".to_string(), "A".to_string(), Rc::clone(&group_state));
+        let mut p = PersonState::new(
+            "Alice".to_string(),
+            "A".to_string(),
+            Rc::clone(&group_state),
+        );
         let date = d(2023, 9, 6);
-        
+
         p.register_service(date, "B".to_string()); // Different place
         assert_eq!(p.different_place_services, 1);
-        
+
         p.unregister_service(date, "B".to_string());
         assert_eq!(p.different_place_services, 0);
     }
-    
+
     #[test]
     fn unregister_service_updates_last_service() {
         let group_state = Rc::new(RefCell::new(GroupState::default()));
-        let mut p = PersonState::new("Alice".to_string(), "A".to_string(), Rc::clone(&group_state));
+        let mut p = PersonState::new(
+            "Alice".to_string(),
+            "A".to_string(),
+            Rc::clone(&group_state),
+        );
         let date = d(2023, 9, 6);
-        
+
         p.register_service(date, "A".to_string());
         assert_eq!(p.last_service, Some(date));
-        
+
         p.unregister_service(date, "A".to_string());
         assert_eq!(p.last_service, None);
     }

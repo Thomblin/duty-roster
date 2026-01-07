@@ -97,33 +97,43 @@ mod tests {
         // Create temporary file for testing
         let temp_file = NamedTempFile::new().unwrap();
         let file_path = temp_file.path().to_string_lossy().to_string();
-        
+
         // Test data
         let csv_content = "date,place,person\n2025-09-01,Place A,Person1";
         let summary_content = "Person1, total: 1, Mon: 1";
-        
+
         // Test the function
-        let result = save_file(file_path.clone(), csv_content.to_string(), summary_content.to_string()).await;
+        let result = save_file(
+            file_path.clone(),
+            csv_content.to_string(),
+            summary_content.to_string(),
+        )
+        .await;
         assert!(result.is_ok());
-        
+
         // Verify file content
         let content = std::fs::read_to_string(file_path).unwrap();
         assert!(content.contains(csv_content));
         assert!(content.contains(summary_content));
     }
-    
+
     #[tokio::test]
     async fn test_save_file_invalid_path() {
         // Test with an invalid file path
         let file_path = "/invalid/path/that/should/not/exist/file.csv";
         let csv_content = "test";
         let summary_content = "test";
-        
-        let result = save_file(file_path.to_string(), csv_content.to_string(), summary_content.to_string()).await;
+
+        let result = save_file(
+            file_path.to_string(),
+            csv_content.to_string(),
+            summary_content.to_string(),
+        )
+        .await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Failed to create file"));
     }
-    
+
     // Mock test to simulate write errors
     // Note: This is a bit tricky to test directly without mocking the File::write_all function
     // In a real-world scenario, you might use a mocking framework or dependency injection

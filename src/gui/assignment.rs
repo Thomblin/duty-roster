@@ -30,7 +30,7 @@ pub fn swap_assignments(
             break;
         }
     }
-    
+
     // Only update if both assignments are found
     if found1 && found2 {
         for assignment in assignments {
@@ -79,10 +79,10 @@ pub fn swap_assignments(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::schedule::GroupState;
     use chrono::NaiveDate;
     use std::cell::RefCell;
     use std::rc::Rc;
-    use crate::schedule::GroupState;
 
     fn create_test_date(year: i32, month: u32, day: u32) -> NaiveDate {
         NaiveDate::from_ymd_opt(year, month, day).unwrap()
@@ -106,23 +106,23 @@ mod tests {
     fn create_test_people() -> Vec<PersonState> {
         let group_state1 = Rc::new(RefCell::new(GroupState::default()));
         let group_state2 = Rc::new(RefCell::new(GroupState::default()));
-        
+
         let mut person1 = PersonState::new(
             "Person1".to_string(),
             "Place A".to_string(),
             Rc::clone(&group_state1),
         );
-        
+
         let mut person2 = PersonState::new(
             "Person2".to_string(),
             "Place B".to_string(),
             Rc::clone(&group_state2),
         );
-        
+
         // Register initial services
         person1.register_service(create_test_date(2025, 9, 1), "Place A".to_string());
         person2.register_service(create_test_date(2025, 9, 2), "Place B".to_string());
-        
+
         vec![person1, person2]
     }
 
@@ -130,28 +130,32 @@ mod tests {
     fn test_swap_assignments_success() {
         let mut assignments = create_test_assignments();
         let mut people = create_test_people();
-        
+
         // Before swap
         assert_eq!(assignments[0].person, "Person1");
         assert_eq!(assignments[1].person, "Person2");
         assert_eq!(people[0].total_services(), 1);
         assert_eq!(people[1].total_services(), 1);
-        
+
         // Perform swap
         let result = swap_assignments(
             &mut assignments,
             &mut people,
-            create_test_date(2025, 9, 1), "Place A", "Person1",
-            create_test_date(2025, 9, 2), "Place B", "Person2"
+            create_test_date(2025, 9, 1),
+            "Place A",
+            "Person1",
+            create_test_date(2025, 9, 2),
+            "Place B",
+            "Person2",
         );
-        
+
         // Check result
         assert!(result);
-        
+
         // Check assignments were updated
         assert_eq!(assignments[0].person, "Person2");
         assert_eq!(assignments[1].person, "Person1");
-        
+
         // Check people stats were updated
         assert_eq!(people[0].total_services(), 1); // Should remain 1 (unregistered 1, registered 1)
         assert_eq!(people[1].total_services(), 1); // Should remain 1 (unregistered 1, registered 1)
@@ -161,18 +165,22 @@ mod tests {
     fn test_swap_assignments_not_found() {
         let mut assignments = create_test_assignments();
         let mut people = create_test_people();
-        
+
         // Try to swap with non-existent assignment
         let result = swap_assignments(
             &mut assignments,
             &mut people,
-            create_test_date(2025, 9, 1), "Place A", "Person1",
-            create_test_date(2025, 9, 3), "Place C", "Person3" // Non-existent
+            create_test_date(2025, 9, 1),
+            "Place A",
+            "Person1",
+            create_test_date(2025, 9, 3),
+            "Place C",
+            "Person3", // Non-existent
         );
-        
+
         // Check result
         assert!(!result);
-        
+
         // Check assignments were not changed
         assert_eq!(assignments[0].person, "Person1"); // First assignment still has Person1
         assert_eq!(assignments[1].person, "Person2"); // Second assignment still has Person2

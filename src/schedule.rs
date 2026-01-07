@@ -9,8 +9,8 @@ use rand::rng;
 use rand::seq::SliceRandom;
 
 pub mod person_state;
-pub use person_state::PersonState;
 pub use person_state::GroupState;
+pub use person_state::PersonState;
 
 /// Assignment captures a date, task(place) and person to do the job
 #[derive(Debug, Clone)]
@@ -74,10 +74,7 @@ pub fn create_schedule(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        config::load_config, dates::get_weekdays,
-        schedule::create_schedule,
-    };
+    use crate::{config::load_config, dates::get_weekdays, schedule::create_schedule};
 
     #[test]
     fn create_schedule_should_provide_reasonable_schedule() {

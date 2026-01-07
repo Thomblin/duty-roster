@@ -151,10 +151,10 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::schedule::GroupState;
     use chrono::NaiveDate;
     use std::cell::RefCell;
     use std::rc::Rc;
-    use crate::schedule::GroupState;
 
     fn create_test_date(year: i32, month: u32, day: u32) -> NaiveDate {
         NaiveDate::from_ymd_opt(year, month, day).unwrap()
@@ -179,23 +179,23 @@ mod tests {
     fn create_test_people() -> Vec<PersonState> {
         let group_state1 = Rc::new(RefCell::new(GroupState::default()));
         let group_state2 = Rc::new(RefCell::new(GroupState::default()));
-        
+
         let mut person1 = PersonState::new(
             "Person1".to_string(),
             "Place A".to_string(),
             Rc::clone(&group_state1),
         );
-        
+
         let mut person2 = PersonState::new(
             "Person2".to_string(),
             "Place B".to_string(),
             Rc::clone(&group_state2),
         );
-        
+
         // Register initial services
         person1.register_service(create_test_date(2025, 9, 1), "Place A".to_string());
         person2.register_service(create_test_date(2025, 9, 2), "Place B".to_string());
-        
+
         vec![person1, person2]
     }
 
@@ -218,11 +218,11 @@ mod tests {
     fn test_get_cell_info_valid_position() {
         let mut state = AppState::default();
         state.assignments = create_test_assignments();
-        
+
         // Test valid position
         let cell_info = state.get_cell_info(CellPosition { row: 1, column: 1 });
         assert!(cell_info.is_some());
-        
+
         if let Some((date, place, person)) = cell_info {
             assert_eq!(date, create_test_date(2025, 9, 1));
             assert_eq!(place, "Place A");
@@ -234,17 +234,20 @@ mod tests {
     fn test_get_cell_info_invalid_position() {
         let mut state = AppState::default();
         state.assignments = create_test_assignments();
-        
+
         // Test header row (row 0)
         let cell_info = state.get_cell_info(CellPosition { row: 0, column: 1 });
         assert!(cell_info.is_none());
-        
+
         // Test date column (column 0)
         let cell_info = state.get_cell_info(CellPosition { row: 1, column: 0 });
         assert!(cell_info.is_none());
-        
+
         // Test out of bounds
-        let cell_info = state.get_cell_info(CellPosition { row: 10, column: 10 });
+        let cell_info = state.get_cell_info(CellPosition {
+            row: 10,
+            column: 10,
+        });
         assert!(cell_info.is_none());
     }
 
@@ -252,11 +255,11 @@ mod tests {
     fn test_handle_cell_click_first_selection() {
         let mut state = AppState::default();
         state.assignments = create_test_assignments();
-        
+
         // First click should select the cell
         let pos = CellPosition { row: 1, column: 1 };
         let _ = state.handle_cell_click(pos);
-        
+
         assert_eq!(state.selected_cell, Some(pos));
     }
 
@@ -264,44 +267,44 @@ mod tests {
     fn test_handle_cell_click_deselect() {
         let mut state = AppState::default();
         state.assignments = create_test_assignments();
-        
+
         // First click selects the cell
         let pos = CellPosition { row: 1, column: 1 };
         let _ = state.handle_cell_click(pos);
-        
+
         // Second click on same cell deselects it
         let _ = state.handle_cell_click(pos);
-        
+
         assert_eq!(state.selected_cell, None);
     }
-    
+
     #[test]
     fn test_handle_cell_click_header_row() {
         let mut state = AppState::default();
         state.assignments = create_test_assignments();
-        
+
         // Clicking on header row should do nothing
         let pos = CellPosition { row: 0, column: 1 };
         let _ = state.handle_cell_click(pos);
-        
+
         // Should not be selected
         assert_eq!(state.selected_cell, None);
     }
-    
+
     #[test]
     fn test_handle_cell_click_swap() {
         let mut state = AppState::default();
         state.assignments = create_test_assignments();
         state.people = create_test_people();
-        
+
         // First click selects the cell
         let pos1 = CellPosition { row: 1, column: 1 };
         let _ = state.handle_cell_click(pos1);
-        
+
         // Second click on different cell attempts swap
         let pos2 = CellPosition { row: 2, column: 1 };
         let _ = state.handle_cell_click(pos2);
-        
+
         // After swap attempt, no cell should be selected
         assert_eq!(state.selected_cell, None);
     }
