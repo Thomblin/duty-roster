@@ -3,6 +3,7 @@ use chrono::NaiveDate;
 use crate::schedule::{Assignment, PersonState};
 
 /// Swap assignments between two positions
+#[allow(clippy::too_many_arguments)]
 pub fn swap_assignments(
     assignments: &mut [Assignment],
     people: &mut [PersonState],

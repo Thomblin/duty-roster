@@ -16,17 +16,12 @@ pub async fn find_config_files() -> Result<Vec<String>, String> {
     if let Ok(entries) = fs::read_dir(".") {
         for entry in entries.filter_map(Result::ok) {
             let path = entry.path();
-            if path.is_file() && path.extension().map_or(false, |ext| ext == "toml") {
-                if let Some(file_name) = path.file_name().and_then(|f| f.to_str()) {
-                    // Skip excluded files
-                    if excluded_files.contains(&file_name) {
-                        continue;
-                    }
-
-                    if let Some(path_str) = path.to_str() {
-                        config_files.push(path_str.to_string());
-                    }
-                }
+            if path.is_file() && path.extension().is_some_and(|ext| ext == "toml")
+                && let Some(file_name) = path.file_name().and_then(|f| f.to_str())
+                && !excluded_files.contains(&file_name)
+                && let Some(path_str) = path.to_str()
+            {
+                config_files.push(path_str.to_string());
             }
         }
     }
@@ -35,17 +30,12 @@ pub async fn find_config_files() -> Result<Vec<String>, String> {
     if let Ok(entries) = fs::read_dir("test") {
         for entry in entries.filter_map(Result::ok) {
             let path = entry.path();
-            if path.is_file() && path.extension().map_or(false, |ext| ext == "toml") {
-                if let Some(file_name) = path.file_name().and_then(|f| f.to_str()) {
-                    // Skip excluded files (unlikely to be in test directory, but check anyway)
-                    if excluded_files.contains(&file_name) {
-                        continue;
-                    }
-
-                    if let Some(path_str) = path.to_str() {
-                        config_files.push(path_str.to_string());
-                    }
-                }
+            if path.is_file() && path.extension().is_some_and(|ext| ext == "toml")
+                && let Some(file_name) = path.file_name().and_then(|f| f.to_str())
+                && !excluded_files.contains(&file_name)
+                && let Some(path_str) = path.to_str()
+            {
+                config_files.push(path_str.to_string());
             }
         }
     }

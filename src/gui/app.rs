@@ -120,16 +120,16 @@ impl Application for DutyRosterApp {
                 self.state.selected_cell = None;
 
                 // Generate people states from the config
-                if let Some(config_path) = &self.state.selected_config {
-                    if let Ok(config) = load_config(config_path) {
-                        let dates = get_weekdays(
-                            &config.dates.from,
-                            &config.dates.to,
-                            &config.dates.weekdays,
-                        );
-                        let (_, people) = create_schedule(&dates, &config);
-                        self.state.people = people;
-                    }
+                if let Some(config_path) = &self.state.selected_config
+                    && let Ok(config) = load_config(config_path)
+                {
+                    let dates = get_weekdays(
+                        &config.dates.from,
+                        &config.dates.to,
+                        &config.dates.weekdays,
+                    );
+                    let (_, people) = create_schedule(&dates, &config);
+                    self.state.people = people;
                 }
 
                 Command::none()
@@ -217,11 +217,11 @@ impl Application for DutyRosterApp {
 
             Message::CheckMessageExpiry => {
                 // Check if the success message has expired
-                if let Some(expires_at) = self.state.success_message_expires_at {
-                    if std::time::Instant::now() >= expires_at {
-                        self.state.success_message = None;
-                        self.state.success_message_expires_at = None;
-                    }
+                if let Some(expires_at) = self.state.success_message_expires_at
+                    && std::time::Instant::now() >= expires_at
+                {
+                    self.state.success_message = None;
+                    self.state.success_message_expires_at = None;
                 }
                 Command::none()
             }

@@ -21,9 +21,8 @@ pub struct AppState {
     pub hovered_cell: Option<CellPosition>,
 }
 
-impl AppState {
-    /// Create a new application state
-    pub fn new() -> Self {
+impl Default for AppState {
+    fn default() -> Self {
         Self {
             config_files: Vec::new(),
             selected_config: None,
@@ -36,6 +35,13 @@ impl AppState {
             selected_cell: None,
             hovered_cell: None,
         }
+    }
+}
+
+impl AppState {
+    /// Create a new empty state
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Handle a cell click

@@ -60,12 +60,12 @@ impl PersonState {
         }
 
         // Update weekday counts
-        if let Some(count) = self.weekday_counts.get_mut(&date.weekday()) {
-            if *count > 0 {
-                *count -= 1;
-                if *count == 0 {
-                    self.weekday_counts.remove(&date.weekday());
-                }
+        if let Some(count) = self.weekday_counts.get_mut(&date.weekday())
+            && *count > 0
+        {
+            *count -= 1;
+            if *count == 0 {
+                self.weekday_counts.remove(&date.weekday());
             }
         }
 
