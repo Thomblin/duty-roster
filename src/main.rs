@@ -1,8 +1,8 @@
 //! executable part of this library. read configuration and generate a csv file with a schedule
 
 use clap::Parser;
-use duty_roster::
-    {PersonState,
+use duty_roster::{
+    PersonState,
     config::load_config,
     csv::assignments_to_csv,
     dates::get_weekdays,
@@ -12,7 +12,7 @@ use duty_roster::
 use std::{error::Error, fs::File, io::Write};
 
 /// Duty Roster - Generate and manage schedules for people and places/tasks
-/// 
+///
 /// By default, this application runs in GUI mode. Use the --cli flag to run in command-line mode.
 #[derive(Parser, Debug)]
 #[command(version, about = "Duty Roster - Generate and manage schedules for people and places/tasks", long_about = None)]
@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Starting GUI mode...");
         gui::run()?;
     }
-    
+
     Ok(())
 }
 

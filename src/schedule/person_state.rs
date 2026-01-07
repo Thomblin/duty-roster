@@ -50,15 +50,15 @@ impl PersonState {
             self.different_place_services += 1;
         }
     }
-    
+
     /// Unregister a service for this person
-    /// 
+    ///
     /// This is used when swapping assignments between people
     pub fn unregister_service(&mut self, date: NaiveDate, place: String) {
         if self.total_services > 0 {
             self.total_services -= 1;
         }
-        
+
         // Update weekday counts
         if let Some(count) = self.weekday_counts.get_mut(&date.weekday()) {
             if *count > 0 {
@@ -68,12 +68,12 @@ impl PersonState {
                 }
             }
         }
-        
+
         // Update different place services
         if place != self.place && self.different_place_services > 0 {
             self.different_place_services -= 1;
         }
-        
+
         // Update last service date if needed
         if self.last_service == Some(date) {
             // Find the next most recent service date
@@ -81,7 +81,7 @@ impl PersonState {
             // In a more complete implementation, we would track all service dates
             self.last_service = None;
         }
-        
+
         // Note: We don't update the group_state here because that would affect other people
         // in the same group. In a real implementation, we might want to recalculate the
         // group's last service date based on all members.
