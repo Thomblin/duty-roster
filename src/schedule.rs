@@ -13,7 +13,7 @@ mod person_state;
 pub use person_state::PersonState;
 
 /// Assignment captures a date, task(place) and person to do the job
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Assignment {
     pub date: NaiveDate,
     pub place: String,
