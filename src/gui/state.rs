@@ -18,6 +18,7 @@ pub struct AppState {
     pub error: Option<String>,
     pub active_tab: Tab,
     pub selected_cell: Option<CellPosition>,
+    pub hovered_cell: Option<CellPosition>,
 }
 
 impl AppState {
@@ -31,6 +32,7 @@ impl AppState {
             error: None,
             active_tab: Tab::Schedule,
             selected_cell: None,
+            hovered_cell: None,
         }
     }
     

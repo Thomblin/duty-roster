@@ -38,6 +38,9 @@ pub enum Message {
     ScheduleSaved(Result<(), String>),
     TabSelected(Tab),
     CellClicked(CellPosition),
+    CellHovered(CellPosition),
+    MouseEntered(CellPosition),
+    MouseLeft,
     Error(String),
 }
 
@@ -191,6 +194,18 @@ impl Application for DutyRosterApp {
             Message::CellClicked(position) => {
                 self.state.handle_cell_click(position)
             },
+            Message::CellHovered(position) => {
+                self.state.hovered_cell = Some(position);
+                Command::none()
+            },
+            Message::MouseEntered(position) => {
+                self.state.hovered_cell = Some(position);
+                Command::none()
+            },
+            Message::MouseLeft => {
+                self.state.hovered_cell = None;
+                Command::none()
+            },
             Message::Error(e) => {
                 self.state.error = Some(e);
                 Command::none()
@@ -260,7 +275,8 @@ impl Application for DutyRosterApp {
                     if !self.state.assignments.is_empty() {
                         let table_view = table::create_table_from_assignments(
                             &self.state.assignments, 
-                            self.state.selected_cell.as_ref()
+                            self.state.selected_cell.as_ref(),
+                            self.state.hovered_cell.as_ref()
                         );
                         content = content.push(scrollable(table_view).height(Length::FillPortion(3)));
                     }

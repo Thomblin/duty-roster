@@ -99,7 +99,11 @@ impl TableState {
 }
 
 /// Create a table view from assignments
-pub fn create_table_from_assignments<'a>(assignments: &'a [Assignment], selected_cell: Option<&'a CellPosition>) -> Element<'a, Message> {
+pub fn create_table_from_assignments<'a>(
+    assignments: &'a [Assignment], 
+    selected_cell: Option<&'a CellPosition>,
+    hovered_cell: Option<&'a CellPosition>
+) -> Element<'a, Message> {
     let mut rows = Vec::new();
     
     // First, organize assignments by date and place
@@ -165,8 +169,12 @@ pub fn create_table_from_assignments<'a>(assignments: &'a [Assignment], selected
                 column: col_idx + 1 // +1 because col_idx starts at 0 but we have a date column
             };
             
-            // Check if this cell is selected
+            // Check if this cell is selected or hovered
             let is_selected = selected_cell
+                .map(|pos| pos.row == cell_position.row && pos.column == cell_position.column)
+                .unwrap_or(false);
+                
+            let is_hovered = hovered_cell
                 .map(|pos| pos.row == cell_position.row && pos.column == cell_position.column)
                 .unwrap_or(false);
             
@@ -174,7 +182,7 @@ pub fn create_table_from_assignments<'a>(assignments: &'a [Assignment], selected
             let btn_style = if is_selected {
                 iced::theme::Button::Primary
             } else {
-                iced::theme::Button::Text
+                iced::theme::Button::Custom(Box::new(CellButtonStyle))
             };
             
             let cell_btn = button(text(&person).size(12))
@@ -216,6 +224,41 @@ impl container::StyleSheet for HeaderRowStyle {
     fn appearance(&self, _style: &Self::Style) -> container::Appearance {
         container::Appearance {
             background: Some(iced::Color::from_rgb(0.9, 0.9, 0.9).into()),
+            ..Default::default()
+        }
+    }
+}
+
+// Custom style for cells
+pub struct CellButtonStyle;
+
+impl button::StyleSheet for CellButtonStyle {
+    type Style = Theme;
+    
+    fn active(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(iced::Color::TRANSPARENT.into()),
+            text_color: iced::Color::BLACK,
+            border: iced::Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            shadow_offset: iced::Vector::default(),
+            ..Default::default()
+        }
+    }
+    
+    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(iced::Color::from_rgb(0.9, 0.9, 0.9).into()),
+            text_color: iced::Color::BLACK,
+            border: iced::Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            shadow_offset: iced::Vector::default(),
             ..Default::default()
         }
     }
