@@ -44,7 +44,7 @@ name = "Daniel"
 name = "Sophie"
 
 [rules]
-# if given, sort in the following order, comment lines that should not matter
+# if given, prioritize in the following order to assign tasks, comment lines that should not matter
 sort = [
     "sortByLeastServices", # everyone works the same amount of hours
     "sortByLastService", # prefer group who were assigned further back in the past
