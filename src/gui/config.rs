@@ -10,7 +10,7 @@ pub async fn find_config_files() -> Result<Vec<String>, String> {
     let mut config_files = Vec::new();
 
     // Files to exclude
-    let excluded_files = ["Cargo.toml"];
+    let excluded_files = ["Cargo.toml", "deny.toml", "cargo-deny.toml"];
 
     // Start with the current directory
     if let Ok(entries) = fs::read_dir(".") {
@@ -193,7 +193,7 @@ mod tests {
         let _element = create_config_selector(
             &config_files,
             &selected_config,
-            |s| TestMessage::ConfigSelected(s),
+            TestMessage::ConfigSelected,
             TestMessage::Refresh,
         );
 
@@ -204,7 +204,7 @@ mod tests {
         let _element = create_config_selector(
             &config_files,
             &selected_config,
-            |s| TestMessage::ConfigSelected(s),
+            TestMessage::ConfigSelected,
             TestMessage::Refresh,
         );
 

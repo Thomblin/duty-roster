@@ -19,6 +19,7 @@ pub struct AppState {
     pub active_tab: Tab,
     pub selected_cell: Option<CellPosition>,
     pub hovered_cell: Option<CellPosition>,
+    pub name_hovered: Option<String>,
 }
 
 impl Default for AppState {
@@ -34,6 +35,7 @@ impl Default for AppState {
             active_tab: Tab::Schedule,
             selected_cell: None,
             hovered_cell: None,
+            name_hovered: None,
         }
     }
 }
@@ -212,6 +214,7 @@ mod tests {
         assert_eq!(state.active_tab, Tab::Schedule);
         assert!(state.selected_cell.is_none());
         assert!(state.hovered_cell.is_none());
+        assert!(state.name_hovered.is_none());
     }
 
     #[test]

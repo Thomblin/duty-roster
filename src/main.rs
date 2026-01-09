@@ -85,12 +85,10 @@ fn store_csv(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{NaiveDate, Weekday};
+    use chrono::NaiveDate;
     use duty_roster::schedule::GroupState;
     use std::cell::RefCell;
-    use std::collections::HashMap;
     use std::rc::Rc;
-    use tempfile::NamedTempFile;
 
     fn create_test_date(year: i32, month: u32, day: u32) -> NaiveDate {
         NaiveDate::from_ymd_opt(year, month, day).unwrap()

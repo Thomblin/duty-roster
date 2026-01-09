@@ -84,7 +84,7 @@ impl Application for DutyRosterApp {
                 Command::none()
             }
             Message::ConfigsLoaded(Err(e)) => {
-                self.state.error = Some(format!("Error loading configs: {}", e));
+                self.state.error = Some(format!("Error loading configs: {e}"));
                 Command::none()
             }
             Message::ConfigSelected(config_path) => {
@@ -132,7 +132,7 @@ impl Application for DutyRosterApp {
                 Command::none()
             }
             Message::ScheduleGenerated(Err(e)) => {
-                self.state.error = Some(format!("Error generating schedule: {}", e));
+                self.state.error = Some(format!("Error generating schedule: {e}"));
                 Command::none()
             }
             Message::SaveScheduleWithDate => {
@@ -158,7 +158,7 @@ impl Application for DutyRosterApp {
                         for person in &self.state.people {
                             let name = person.name();
                             let total = person.total_services();
-                            summary_content.push_str(&format!("{}, total: {}", name, total));
+                            summary_content.push_str(&format!("{name}, total: {total}"));
 
                             for (day, count) in person.weekday_counts() {
                                 summary_content.push_str(&format!(", {day}: {count}"));
@@ -177,8 +177,7 @@ impl Application for DutyRosterApp {
                             move |result| {
                                 if result.is_ok() {
                                     Message::ShowSuccessMessage(format!(
-                                        "Schedule saved to {}",
-                                        filename_for_message
+                                        "Schedule saved to {filename_for_message}"
                                     ))
                                 } else {
                                     Message::ScheduleSaved(result)
@@ -187,7 +186,7 @@ impl Application for DutyRosterApp {
                         )
                     }
                     Err(e) => {
-                        self.state.error = Some(format!("Failed to create CSV: {}", e));
+                        self.state.error = Some(format!("Failed to create CSV: {e}"));
                         Command::none()
                     }
                 }
@@ -223,7 +222,7 @@ impl Application for DutyRosterApp {
                 Command::none()
             }
             Message::ScheduleSaved(Err(e)) => {
-                self.state.error = Some(format!("Error saving schedule: {}", e));
+                self.state.error = Some(format!("Error saving schedule: {e}"));
                 Command::none()
             }
             Message::TabSelected(tab) => {
@@ -233,14 +232,25 @@ impl Application for DutyRosterApp {
             Message::CellClicked(position) => self.state.handle_cell_click(position),
             Message::CellHovered(position) => {
                 self.state.hovered_cell = Some(position);
+                if let Some((_, _, person)) = self.state.get_cell_info(position) {
+                    self.state.name_hovered = Some(person);
+                } else {
+                    self.state.name_hovered = None;
+                }
                 Command::none()
             }
             Message::MouseEntered(position) => {
                 self.state.hovered_cell = Some(position);
+                if let Some((_, _, person)) = self.state.get_cell_info(position) {
+                    self.state.name_hovered = Some(person);
+                } else {
+                    self.state.name_hovered = None;
+                }
                 Command::none()
             }
             Message::MouseLeft => {
                 self.state.hovered_cell = None;
+                self.state.name_hovered = None;
                 Command::none()
             }
             Message::Error(e) => {
@@ -276,7 +286,7 @@ impl Application for DutyRosterApp {
         // Display error if any
         if let Some(error) = &self.state.error {
             content = content.push(
-                text(format!("Error: {}", error))
+                text(format!("Error: {error}"))
                     .size(12)
                     .style(iced::Color::from_rgb(0.8, 0.0, 0.0)),
             );
@@ -330,6 +340,7 @@ impl Application for DutyRosterApp {
                             &self.state.assignments,
                             self.state.selected_cell.as_ref(),
                             self.state.hovered_cell.as_ref(),
+                            self.state.name_hovered.as_ref(),
                         );
                         content =
                             content.push(scrollable(table_view).height(Length::FillPortion(3)));
@@ -388,27 +399,6 @@ mod tests {
         ]
     }
 
-    fn create_test_people() -> Vec<PersonState> {
-        let group_state = Rc::new(RefCell::new(GroupState::default()));
-
-        let mut person1 = PersonState::new(
-            "Person1".to_string(),
-            "Place A".to_string(),
-            Rc::clone(&group_state),
-        );
-
-        let mut person2 = PersonState::new(
-            "Person2".to_string(),
-            "Place B".to_string(),
-            Rc::clone(&group_state),
-        );
-
-        person1.register_service(create_test_date(2025, 9, 1), "Place A".to_string());
-        person2.register_service(create_test_date(2025, 9, 2), "Place B".to_string());
-
-        vec![person1, person2]
-    }
-
     #[test]
     fn test_new() {
         let (app, _command) = DutyRosterApp::new(());
@@ -458,6 +448,9 @@ mod tests {
     fn test_update_cell_hovered() {
         let mut app = create_test_app();
 
+        // Add test assignments so we can extract person names
+        app.state.assignments = create_test_assignments();
+
         // Test hovering over a cell
         let position = CellPosition { row: 1, column: 1 };
         let message = Message::CellHovered(position);
@@ -465,14 +458,16 @@ mod tests {
         let _cmd = app.update(message);
 
         assert_eq!(app.state.hovered_cell, Some(position));
+        assert_eq!(app.state.name_hovered, Some("Person1".to_string()));
     }
 
     #[test]
     fn test_update_mouse_left() {
         let mut app = create_test_app();
 
-        // First set a hovered cell
+        // First set a hovered cell and name
         app.state.hovered_cell = Some(CellPosition { row: 1, column: 1 });
+        app.state.name_hovered = Some("Person1".to_string());
 
         // Test mouse leaving
         let message = Message::MouseLeft;
@@ -480,6 +475,7 @@ mod tests {
         let _cmd = app.update(message);
 
         assert_eq!(app.state.hovered_cell, None);
+        assert_eq!(app.state.name_hovered, None);
     }
 
     #[test]

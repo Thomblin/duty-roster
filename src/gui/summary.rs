@@ -70,9 +70,8 @@ pub fn create_summary_view_from_people(people: &[PersonState]) -> Element<'_, Me
 mod tests {
     use super::*;
     use crate::schedule::GroupState;
-    use chrono::{NaiveDate, Weekday};
+    use chrono::NaiveDate;
     use std::cell::RefCell;
-    use std::collections::HashMap;
     use std::rc::Rc;
 
     fn create_test_date(year: i32, month: u32, day: u32) -> NaiveDate {

@@ -13,7 +13,7 @@ pub async fn generate_schedule(config_path: String) -> Result<Vec<Assignment>, S
             let (assignments, _) = create_schedule(&dates, &config);
             Ok(assignments)
         }
-        Err(e) => Err(format!("Failed to load config: {}", e)),
+        Err(e) => Err(format!("Failed to load config: {e}")),
     }
 }
 
@@ -27,21 +27,21 @@ pub async fn save_file(
         Ok(mut file) => {
             // Write CSV content
             if let Err(e) = file.write_all(csv_content.as_bytes()) {
-                return Err(format!("Failed to write CSV content: {}", e));
+                return Err(format!("Failed to write CSV content: {e}"));
             }
 
             // Add a newline between CSV and summary
             if let Err(e) = file.write_all(b"\n") {
-                return Err(format!("Failed to write newline: {}", e));
+                return Err(format!("Failed to write newline: {e}"));
             }
 
             // Write summary content
             match file.write_all(summary_content.as_bytes()) {
                 Ok(_) => Ok(()),
-                Err(e) => Err(format!("Failed to write summary content: {}", e)),
+                Err(e) => Err(format!("Failed to write summary content: {e}")),
             }
         }
-        Err(e) => Err(format!("Failed to create file: {}", e)),
+        Err(e) => Err(format!("Failed to create file: {e}")),
     }
 }
 

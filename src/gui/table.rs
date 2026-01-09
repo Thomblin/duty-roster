@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use iced::widget::{button, column, container, row, text};
+use iced::widget::{button, column, container, mouse_area, row, text};
 use iced::{Element, Length, Theme};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -110,6 +110,7 @@ pub fn create_table_from_assignments<'a>(
     assignments: &'a [Assignment],
     selected_cell: Option<&'a CellPosition>,
     hovered_cell: Option<&'a CellPosition>,
+    name_hovered: Option<&'a String>,
 ) -> Element<'a, Message> {
     let mut rows = Vec::new();
 
@@ -185,9 +186,16 @@ pub fn create_table_from_assignments<'a>(
                 .map(|pos| pos.row == cell_position.row && pos.column == cell_position.column)
                 .unwrap_or(false);
 
+            // Check if this cell's person matches the hovered name
+            let is_name_highlighted = name_hovered
+                .map(|hovered_name| !person.is_empty() && &person == hovered_name)
+                .unwrap_or(false);
+
             // Create clickable cell
             let btn_style = if is_selected {
                 iced::theme::Button::Primary
+            } else if is_name_highlighted {
+                iced::theme::Button::Custom(Box::new(HighlightedCellButtonStyle))
             } else {
                 iced::theme::Button::Custom(Box::new(CellButtonStyle))
             };
@@ -198,7 +206,12 @@ pub fn create_table_from_assignments<'a>(
                 .on_press(Message::CellClicked(cell_position))
                 .style(btn_style);
 
-            row_content = row_content.push(cell_btn);
+            // Wrap in mouse_area to detect hover events
+            let cell_with_hover = mouse_area(cell_btn)
+                .on_enter(Message::CellHovered(cell_position))
+                .on_exit(Message::MouseLeft);
+
+            row_content = row_content.push(cell_with_hover);
         }
 
         // Add the data row
@@ -259,6 +272,41 @@ impl button::StyleSheet for CellButtonStyle {
     fn hovered(&self, _style: &Self::Style) -> button::Appearance {
         button::Appearance {
             background: Some(iced::Color::from_rgb(0.9, 0.9, 0.9).into()),
+            text_color: iced::Color::BLACK,
+            border: iced::Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            shadow_offset: iced::Vector::default(),
+            ..Default::default()
+        }
+    }
+}
+
+// Custom style for highlighted cells (light gray)
+pub struct HighlightedCellButtonStyle;
+
+impl button::StyleSheet for HighlightedCellButtonStyle {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(iced::Color::from_rgb(0.85, 0.85, 0.85).into()),
+            text_color: iced::Color::BLACK,
+            border: iced::Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            shadow_offset: iced::Vector::default(),
+            ..Default::default()
+        }
+    }
+
+    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(iced::Color::from_rgb(0.8, 0.8, 0.8).into()),
             text_color: iced::Color::BLACK,
             border: iced::Border {
                 radius: 2.0.into(),
@@ -400,7 +448,7 @@ mod tests {
         let assignments = create_test_assignments();
 
         // Create a table with no selection or hover
-        let element = create_table_from_assignments(&assignments, None, None);
+        let element = create_table_from_assignments(&assignments, None, None, None);
 
         // We can't easily test the actual UI rendering, but we can ensure the function runs without panicking
         // and returns an Element
@@ -408,12 +456,20 @@ mod tests {
 
         // Create a table with selection
         let selected_cell = Some(CellPosition { row: 1, column: 1 });
-        let element = create_table_from_assignments(&assignments, selected_cell.as_ref(), None);
+        let element =
+            create_table_from_assignments(&assignments, selected_cell.as_ref(), None, None);
         assert!(element.as_widget().children().len() > 0);
 
         // Create a table with hover
         let hovered_cell = Some(CellPosition { row: 1, column: 1 });
-        let element = create_table_from_assignments(&assignments, None, hovered_cell.as_ref());
+        let element =
+            create_table_from_assignments(&assignments, None, hovered_cell.as_ref(), None);
+        assert!(element.as_widget().children().len() > 0);
+
+        // Create a table with name_hovered
+        let name_hovered = Some("Person1".to_string());
+        let element =
+            create_table_from_assignments(&assignments, None, None, name_hovered.as_ref());
         assert!(element.as_widget().children().len() > 0);
     }
 }
