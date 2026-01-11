@@ -12,13 +12,13 @@ weekdays = [ # create a schedule only on these weekdays
 
 [places]
 places = [
-    "Place A",
-    "Place B",
+    "Office",
+    "Transport",
 ]
 
 [[group]]
 name = "Smith"
-place = "Place A"
+place = "Office"
 
 [[group.members]]
 name = "Emily"
@@ -28,14 +28,14 @@ name = "William"
 
 [[group]]
 name = "Jones"
-place = "Place B"
+place = "Transport"
 
 [[group.members]]
 name = "Olivia"
 
 [[group]]
 name = "Brown"
-place = "Place B"
+place = "Transport"
 
 [[group.members]]
 name = "Daniel"
