@@ -1,4 +1,4 @@
-use iced::widget::{column, container, row, text};
+use iced::widget::{column, container, mouse_area, row, text};
 use iced::{Element, Length, Theme};
 
 use super::Message;
@@ -30,8 +30,72 @@ impl container::StyleSheet for SummaryColumnHeaderStyle {
     }
 }
 
+pub struct SummaryPersonHighlightStyle;
+
+impl container::StyleSheet for SummaryPersonHighlightStyle {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(iced::Color::from_rgb(0.85, 0.85, 0.85).into()),
+            ..Default::default()
+        }
+    }
+}
+
+pub struct SummaryPersonHighlightStyleYellow;
+
+impl container::StyleSheet for SummaryPersonHighlightStyleYellow {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(iced::Color::from_rgb(1.0, 1.0, 0.8).into()),
+            ..Default::default()
+        }
+    }
+}
+
+pub struct SummaryPersonHighlightStyleGreen;
+
+impl container::StyleSheet for SummaryPersonHighlightStyleGreen {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(iced::Color::from_rgb(0.8, 1.0, 0.8).into()),
+            ..Default::default()
+        }
+    }
+}
+
+pub struct SummaryPersonHighlightStyleBlue;
+
+impl container::StyleSheet for SummaryPersonHighlightStyleBlue {
+    type Style = Theme;
+
+    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(iced::Color::from_rgb(0.8, 0.9, 1.0).into()),
+            ..Default::default()
+        }
+    }
+}
+
+fn highlight_slot_for_person(
+    highlighted_names: &[Option<String>; 4],
+    person_name: &str,
+) -> Option<usize> {
+    highlighted_names
+        .iter()
+        .position(|p| p.as_deref() == Some(person_name))
+}
+
 /// Create a summary view from people states
-pub fn create_summary_view_from_people(people: &[PersonState]) -> Element<'_, Message> {
+pub fn create_summary_view_from_people<'a>(
+    people: &'a [PersonState],
+    highlighted_names: &'a [Option<String>; 4],
+) -> Element<'a, Message> {
     let mut rows = Vec::new();
 
     // Header
@@ -65,6 +129,7 @@ pub fn create_summary_view_from_people(people: &[PersonState]) -> Element<'_, Me
         let person_name = format!("{} ({})", person.name(), person.place());
         let total = person.total_services().to_string();
         let different_place = person.different_place_services().to_string();
+        let person_key = person.name();
 
         // Format weekday stats
         let weekday_stats = person
@@ -82,16 +147,51 @@ pub fn create_summary_view_from_people(people: &[PersonState]) -> Element<'_, Me
             .collect::<Vec<String>>()
             .join(", ");
 
+        let highlight_slot = highlight_slot_for_person(highlighted_names, person.name().as_str());
+
+        let row_container = container(row![
+            text(person_name).size(12).width(Length::FillPortion(2)),
+            text(total).size(12).width(Length::FillPortion(1)),
+            text(weekday_stats).size(12).width(Length::FillPortion(2)),
+            text(place_stats).size(12).width(Length::FillPortion(3)),
+            text(different_place).size(12).width(Length::FillPortion(1))
+        ])
+        .padding(3);
+
         rows.push(
-            container(row![
-                text(person_name).size(12).width(Length::FillPortion(2)),
-                text(total).size(12).width(Length::FillPortion(1)),
-                text(weekday_stats).size(12).width(Length::FillPortion(2)),
-                text(place_stats).size(12).width(Length::FillPortion(3)),
-                text(different_place).size(12).width(Length::FillPortion(1))
-            ])
-            .padding(3)
-            .into(),
+            match highlight_slot {
+                Some(0) => mouse_area(
+                    row_container.style(iced::theme::Container::Custom(Box::new(
+                        SummaryPersonHighlightStyle,
+                    ))),
+                )
+                .on_press(Message::SummaryPersonClicked(person_key.clone()))
+                .into(),
+                Some(1) => mouse_area(
+                    row_container.style(iced::theme::Container::Custom(Box::new(
+                        SummaryPersonHighlightStyleYellow,
+                    ))),
+                )
+                .on_press(Message::SummaryPersonClicked(person_key.clone()))
+                .into(),
+                Some(2) => mouse_area(
+                    row_container.style(iced::theme::Container::Custom(Box::new(
+                        SummaryPersonHighlightStyleGreen,
+                    ))),
+                )
+                .on_press(Message::SummaryPersonClicked(person_key.clone()))
+                .into(),
+                Some(_) => mouse_area(
+                    row_container.style(iced::theme::Container::Custom(Box::new(
+                        SummaryPersonHighlightStyleBlue,
+                    ))),
+                )
+                .on_press(Message::SummaryPersonClicked(person_key.clone()))
+                .into(),
+                None => mouse_area(row_container)
+                    .on_press(Message::SummaryPersonClicked(person_key.clone()))
+                    .into(),
+            },
         );
     }
 
@@ -103,6 +203,7 @@ mod tests {
     use super::*;
     use crate::schedule::GroupState;
     use chrono::NaiveDate;
+    use iced::Background;
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -150,6 +251,68 @@ mod tests {
             &theme,
         );
         assert!(col_header.background.is_some());
+
+        let gray = <SummaryPersonHighlightStyle as container::StyleSheet>::appearance(
+            &SummaryPersonHighlightStyle,
+            &theme,
+        );
+        assert_eq!(
+            gray.background,
+            Some(Background::Color(iced::Color::from_rgb(0.85, 0.85, 0.85)))
+        );
+
+        let yellow = <SummaryPersonHighlightStyleYellow as container::StyleSheet>::appearance(
+            &SummaryPersonHighlightStyleYellow,
+            &theme,
+        );
+        assert_eq!(
+            yellow.background,
+            Some(Background::Color(iced::Color::from_rgb(1.0, 1.0, 0.8)))
+        );
+
+        let green = <SummaryPersonHighlightStyleGreen as container::StyleSheet>::appearance(
+            &SummaryPersonHighlightStyleGreen,
+            &theme,
+        );
+        assert_eq!(
+            green.background,
+            Some(Background::Color(iced::Color::from_rgb(0.8, 1.0, 0.8)))
+        );
+
+        let blue = <SummaryPersonHighlightStyleBlue as container::StyleSheet>::appearance(
+            &SummaryPersonHighlightStyleBlue,
+            &theme,
+        );
+        assert_eq!(
+            blue.background,
+            Some(Background::Color(iced::Color::from_rgb(0.8, 0.9, 1.0)))
+        );
+    }
+
+    #[test]
+    fn test_highlight_slot_for_person_none() {
+        let highlighted_names = [
+            Some("Alice".to_string()),
+            Some("Bob".to_string()),
+            Some("Carol".to_string()),
+            Some("Dave".to_string()),
+        ];
+        assert_eq!(highlight_slot_for_person(&highlighted_names, "Eve"), None);
+    }
+
+    #[test]
+    fn test_highlight_slot_for_person_each_slot() {
+        let highlighted_names = [
+            Some("Alice".to_string()),
+            Some("Bob".to_string()),
+            Some("Carol".to_string()),
+            Some("Dave".to_string()),
+        ];
+
+        assert_eq!(highlight_slot_for_person(&highlighted_names, "Alice"), Some(0));
+        assert_eq!(highlight_slot_for_person(&highlighted_names, "Bob"), Some(1));
+        assert_eq!(highlight_slot_for_person(&highlighted_names, "Carol"), Some(2));
+        assert_eq!(highlight_slot_for_person(&highlighted_names, "Dave"), Some(3));
     }
 
     #[test]
@@ -157,7 +320,7 @@ mod tests {
         let people = create_test_people();
 
         // Create the summary view
-        let element = create_summary_view_from_people(&people);
+        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
 
         // We can't easily test the actual UI rendering, but we can ensure the function runs without panicking
         // and returns an Element
@@ -170,7 +333,7 @@ mod tests {
         let people: Vec<PersonState> = Vec::new();
 
         // Create the summary view
-        let element = create_summary_view_from_people(&people);
+        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
 
         // Should still create headers even with no data
         assert!(element.as_widget().children().len() > 0);
@@ -192,7 +355,7 @@ mod tests {
         person.register_service(create_test_date(2025, 9, 4), "Place A".to_string());
 
         let people = vec![person];
-        let element = create_summary_view_from_people(&people);
+        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
 
         // Verify the element is created successfully
         assert!(element.as_widget().children().len() > 0);
@@ -222,7 +385,7 @@ mod tests {
             people.push(person);
         }
 
-        let element = create_summary_view_from_people(&people);
+        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
 
         // Should have created element successfully
         assert!(element.as_widget().children().len() > 0);
@@ -248,7 +411,7 @@ mod tests {
         assert_eq!(*place_counts.get("Away").unwrap(), 1);
 
         let people = vec![person];
-        let element = create_summary_view_from_people(&people);
+        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
 
         // Verify element is created
         assert!(element.as_widget().children().len() > 0);
@@ -269,7 +432,7 @@ mod tests {
         person.register_service(create_test_date(2025, 9, 3), "Place_C".to_string());
 
         let people = vec![person];
-        let element = create_summary_view_from_people(&people);
+        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
 
         assert!(element.as_widget().children().len() > 0);
     }

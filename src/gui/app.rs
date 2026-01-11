@@ -36,6 +36,7 @@ pub enum Message {
     ScheduleGenerated(Result<Vec<Assignment>, String>), // assignments only
     ScheduleSaved(Result<(), String>),
     TabSelected(Tab),
+    SummaryPersonClicked(String),
     CellClicked(CellPosition),
     CellRightClicked(CellPosition),
     CellHovered(CellPosition),
@@ -214,6 +215,10 @@ impl Application for DutyRosterApp {
                 self.state.active_tab = tab;
                 Command::none()
             }
+            Message::SummaryPersonClicked(person) => {
+                self.state.toggle_highlighted_name(person);
+                Command::none()
+            }
             Message::CellClicked(position) => self.state.handle_cell_click(position),
             Message::CellRightClicked(position) => {
                 if let Some((_, _, person)) = self.state.get_cell_info(position) {
@@ -331,7 +336,7 @@ impl Application for DutyRosterApp {
                 Tab::Summary => {
                     if !self.state.people.is_empty() {
                         let summary_view =
-                            summary::create_summary_view_from_people(&self.state.people);
+                            summary::create_summary_view_from_people(&self.state.people, &self.state.highlighted_names);
                         content =
                             content.push(scrollable(summary_view).height(Length::FillPortion(3)));
                     }
@@ -967,6 +972,22 @@ mod tests {
         let pos = CellPosition { row: 1, column: 1 };
         let _ = app.update(Message::MouseEntered(pos));
         assert_eq!(app.state.highlighted_names[0], Some("Someone".to_string()));
+    }
+
+    #[test]
+    fn test_update_summary_person_clicked_toggles_highlight() {
+        let mut app = create_test_app();
+
+        assert_eq!(app.state.highlighted_names, [None, None, None, None]);
+
+        let _ = app.update(Message::SummaryPersonClicked("Alice".to_string()));
+        assert_eq!(
+            app.state.highlighted_names,
+            [Some("Alice".to_string()), None, None, None]
+        );
+
+        let _ = app.update(Message::SummaryPersonClicked("Alice".to_string()));
+        assert_eq!(app.state.highlighted_names, [None, None, None, None]);
     }
 
     #[test]
