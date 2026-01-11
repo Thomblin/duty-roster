@@ -213,13 +213,9 @@ impl Application for DutyRosterApp {
             Message::CellClicked(position) => self.state.handle_cell_click(position),
             Message::CellRightClicked(position) => {
                 if let Some((_, _, person)) = self.state.get_cell_info(position) {
-                    if self.state.name_hovered.as_deref() == Some(&person) {
-                        self.state.name_hovered = None;
-                    } else {
-                        self.state.name_hovered = Some(person);
-                    }
+                    self.state.toggle_highlighted_name(person);
                 } else {
-                    self.state.name_hovered = None;
+                    self.state.highlighted_names = [None, None, None, None];
                 }
                 Command::none()
             }
@@ -322,7 +318,7 @@ impl Application for DutyRosterApp {
                             &self.state.assignments,
                             self.state.selected_cell.as_ref(),
                             self.state.hovered_cell.as_ref(),
-                            self.state.name_hovered.as_ref(),
+                            &self.state.highlighted_names,
                         );
                         content =
                             content.push(scrollable(table_view).height(Length::FillPortion(3)));
@@ -486,7 +482,7 @@ mod tests {
         let _cmd = app.update(message);
 
         assert_eq!(app.state.hovered_cell, Some(position));
-        assert_eq!(app.state.name_hovered, None);
+        assert_eq!(app.state.highlighted_names, [None, None, None, None]);
     }
 
     #[test]
@@ -495,7 +491,7 @@ mod tests {
 
         // First set a hovered cell and name
         app.state.hovered_cell = Some(CellPosition { row: 1, column: 1 });
-        app.state.name_hovered = Some("Person1".to_string());
+        app.state.highlighted_names[0] = Some("Person1".to_string());
 
         // Test mouse leaving
         let message = Message::MouseLeft;
@@ -503,7 +499,7 @@ mod tests {
         let _cmd = app.update(message);
 
         assert_eq!(app.state.hovered_cell, None);
-        assert_eq!(app.state.name_hovered, Some("Person1".to_string()));
+        assert_eq!(app.state.highlighted_names[0], Some("Person1".to_string()));
     }
 
     #[test]
@@ -514,10 +510,10 @@ mod tests {
         let position = CellPosition { row: 1, column: 1 };
 
         let _cmd = app.update(Message::CellRightClicked(position));
-        assert_eq!(app.state.name_hovered, Some("Person1".to_string()));
+        assert_eq!(app.state.highlighted_names[0], Some("Person1".to_string()));
 
         let _cmd = app.update(Message::CellRightClicked(position));
-        assert_eq!(app.state.name_hovered, None);
+        assert_eq!(app.state.highlighted_names, [None, None, None, None]);
     }
 
     #[test]
@@ -873,11 +869,11 @@ mod tests {
     #[test]
     fn test_update_mouse_entered_name_not_found() {
         let mut app = create_test_app();
-        app.state.name_hovered = Some("Someone".to_string());
+        app.state.highlighted_names[0] = Some("Someone".to_string());
 
         let pos = CellPosition { row: 1, column: 1 };
         let _ = app.update(Message::MouseEntered(pos));
-        assert_eq!(app.state.name_hovered, Some("Someone".to_string()));
+        assert_eq!(app.state.highlighted_names[0], Some("Someone".to_string()));
     }
 
     #[test]

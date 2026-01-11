@@ -19,7 +19,7 @@ pub struct AppState {
     pub active_tab: Tab,
     pub selected_cell: Option<CellPosition>,
     pub hovered_cell: Option<CellPosition>,
-    pub name_hovered: Option<String>,
+    pub highlighted_names: [Option<String>; 4],
 }
 
 impl Default for AppState {
@@ -35,7 +35,7 @@ impl Default for AppState {
             active_tab: Tab::Schedule,
             selected_cell: None,
             hovered_cell: None,
-            name_hovered: None,
+            highlighted_names: [None, None, None, None],
         }
     }
 }
@@ -44,6 +44,21 @@ impl AppState {
     /// Create a new empty state
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn toggle_highlighted_name(&mut self, person: String) {
+        if let Some(slot) = self
+            .highlighted_names
+            .iter()
+            .position(|p| p.as_deref() == Some(&person))
+        {
+            self.highlighted_names[slot] = None;
+            return;
+        }
+
+        if let Some(slot) = self.highlighted_names.iter().position(|p| p.is_none()) {
+            self.highlighted_names[slot] = Some(person);
+        }
     }
 
     /// Handle a cell click
@@ -214,7 +229,7 @@ mod tests {
         assert_eq!(state.active_tab, Tab::Schedule);
         assert!(state.selected_cell.is_none());
         assert!(state.hovered_cell.is_none());
-        assert!(state.name_hovered.is_none());
+        assert_eq!(state.highlighted_names, [None, None, None, None]);
     }
 
     #[test]

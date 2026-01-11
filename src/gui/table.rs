@@ -14,6 +14,108 @@ pub struct TableState {
     places: BTreeSet<String>,
 }
 
+pub struct HighlightedCellButtonStyleYellow;
+
+impl button::StyleSheet for HighlightedCellButtonStyleYellow {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(iced::Color::from_rgb(1.0, 1.0, 0.8).into()),
+            text_color: iced::Color::BLACK,
+            border: iced::Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            shadow_offset: iced::Vector::default(),
+            ..Default::default()
+        }
+    }
+
+    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(iced::Color::from_rgb(1.0, 1.0, 0.7).into()),
+            text_color: iced::Color::BLACK,
+            border: iced::Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            shadow_offset: iced::Vector::default(),
+            ..Default::default()
+        }
+    }
+}
+
+pub struct HighlightedCellButtonStyleGreen;
+
+impl button::StyleSheet for HighlightedCellButtonStyleGreen {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(iced::Color::from_rgb(0.8, 1.0, 0.8).into()),
+            text_color: iced::Color::BLACK,
+            border: iced::Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            shadow_offset: iced::Vector::default(),
+            ..Default::default()
+        }
+    }
+
+    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(iced::Color::from_rgb(0.75, 0.95, 0.75).into()),
+            text_color: iced::Color::BLACK,
+            border: iced::Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            shadow_offset: iced::Vector::default(),
+            ..Default::default()
+        }
+    }
+}
+
+pub struct HighlightedCellButtonStyleBlue;
+
+impl button::StyleSheet for HighlightedCellButtonStyleBlue {
+    type Style = Theme;
+
+    fn active(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(iced::Color::from_rgb(0.8, 0.9, 1.0).into()),
+            text_color: iced::Color::BLACK,
+            border: iced::Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            shadow_offset: iced::Vector::default(),
+            ..Default::default()
+        }
+    }
+
+    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            background: Some(iced::Color::from_rgb(0.75, 0.85, 0.95).into()),
+            text_color: iced::Color::BLACK,
+            border: iced::Border {
+                radius: 2.0.into(),
+                width: 0.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            shadow_offset: iced::Vector::default(),
+            ..Default::default()
+        }
+    }
+}
+
 impl TableState {
     /// Create a new TableState from assignments
     pub fn new(assignments: &[Assignment]) -> Self {
@@ -110,7 +212,7 @@ pub fn create_table_from_assignments<'a>(
     assignments: &'a [Assignment],
     selected_cell: Option<&'a CellPosition>,
     hovered_cell: Option<&'a CellPosition>,
-    name_hovered: Option<&'a String>,
+    highlighted_names: &'a [Option<String>; 4],
 ) -> Element<'a, Message> {
     let mut rows = Vec::new();
 
@@ -186,16 +288,24 @@ pub fn create_table_from_assignments<'a>(
                 .map(|pos| pos.row == cell_position.row && pos.column == cell_position.column)
                 .unwrap_or(false);
 
-            // Check if this cell's person matches the hovered name
-            let is_name_highlighted = name_hovered
-                .map(|hovered_name| !person.is_empty() && &person == hovered_name)
-                .unwrap_or(false);
+            let highlight_slot = if person.is_empty() {
+                None
+            } else {
+                highlighted_names
+                    .iter()
+                    .position(|p| p.as_deref() == Some(person.as_str()))
+            };
 
             // Create clickable cell
             let btn_style = if is_selected {
                 iced::theme::Button::Primary
-            } else if is_name_highlighted {
-                iced::theme::Button::Custom(Box::new(HighlightedCellButtonStyle))
+            } else if let Some(slot) = highlight_slot {
+                match slot {
+                    0 => iced::theme::Button::Custom(Box::new(HighlightedCellButtonStyle)),
+                    1 => iced::theme::Button::Custom(Box::new(HighlightedCellButtonStyleYellow)),
+                    2 => iced::theme::Button::Custom(Box::new(HighlightedCellButtonStyleGreen)),
+                    _ => iced::theme::Button::Custom(Box::new(HighlightedCellButtonStyleBlue)),
+                }
             } else {
                 iced::theme::Button::Custom(Box::new(CellButtonStyle))
             };
@@ -372,6 +482,24 @@ mod tests {
             &theme,
         );
         assert!(hovered_hl.background.is_some());
+
+        let active_y = <HighlightedCellButtonStyleYellow as button::StyleSheet>::active(
+            &HighlightedCellButtonStyleYellow,
+            &theme,
+        );
+        assert!(active_y.background.is_some());
+
+        let active_g = <HighlightedCellButtonStyleGreen as button::StyleSheet>::active(
+            &HighlightedCellButtonStyleGreen,
+            &theme,
+        );
+        assert!(active_g.background.is_some());
+
+        let active_b = <HighlightedCellButtonStyleBlue as button::StyleSheet>::active(
+            &HighlightedCellButtonStyleBlue,
+            &theme,
+        );
+        assert!(active_b.background.is_some());
     }
 
     #[test]
@@ -478,9 +606,10 @@ mod tests {
     #[test]
     fn test_create_table_from_assignments() {
         let assignments = create_test_assignments();
+        let highlighted_names = [None, None, None, None];
 
         // Create a table with no selection or hover
-        let element = create_table_from_assignments(&assignments, None, None, None);
+        let element = create_table_from_assignments(&assignments, None, None, &highlighted_names);
 
         // We can't easily test the actual UI rendering, but we can ensure the function runs without panicking
         // and returns an Element
@@ -488,20 +617,26 @@ mod tests {
 
         // Create a table with selection
         let selected_cell = Some(CellPosition { row: 1, column: 1 });
-        let element =
-            create_table_from_assignments(&assignments, selected_cell.as_ref(), None, None);
+        let element = create_table_from_assignments(
+            &assignments,
+            selected_cell.as_ref(),
+            None,
+            &highlighted_names,
+        );
         assert!(element.as_widget().children().len() > 0);
 
         // Create a table with hover
         let hovered_cell = Some(CellPosition { row: 1, column: 1 });
-        let element =
-            create_table_from_assignments(&assignments, None, hovered_cell.as_ref(), None);
+        let element = create_table_from_assignments(
+            &assignments,
+            None,
+            hovered_cell.as_ref(),
+            &highlighted_names,
+        );
         assert!(element.as_widget().children().len() > 0);
 
-        // Create a table with name_hovered
-        let name_hovered = Some("Person1".to_string());
-        let element =
-            create_table_from_assignments(&assignments, None, None, name_hovered.as_ref());
+        let highlighted_names = [Some("Person1".to_string()), None, None, None];
+        let element = create_table_from_assignments(&assignments, None, None, &highlighted_names);
         assert!(element.as_widget().children().len() > 0);
     }
 }
