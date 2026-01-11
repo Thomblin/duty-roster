@@ -62,7 +62,7 @@ pub fn create_summary_view_from_people(people: &[PersonState]) -> Element<'_, Me
 
     // Display each person's data directly from the PersonState objects
     for person in people {
-        let person_name = person.name();
+        let person_name = format!("{} ({})", person.name(), person.place());
         let total = person.total_services().to_string();
         let different_place = person.different_place_services().to_string();
 
