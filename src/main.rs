@@ -296,3 +296,138 @@ fn test_store_csv_invalid_path() {
     // Should return an error
     assert!(result.is_err());
 }
+
+#[test]
+fn test_store_csv_with_place_counts() {
+    use chrono::NaiveDate;
+    use duty_roster::schedule::GroupState;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use tempfile::NamedTempFile;
+
+    // Create a temporary file for testing - keep the file handle alive
+    let temp_file = NamedTempFile::new().unwrap();
+    let file_path = temp_file.path().to_string_lossy().to_string();
+
+    // Create test assignments at multiple places
+    // Use same date for both assignments so CSV has proper structure
+    let date1 = NaiveDate::from_ymd_opt(2025, 9, 1).unwrap();
+
+    let assignments = vec![
+        Assignment {
+            date: date1,
+            place: "Place A".to_string(),
+            person: "Person1".to_string(),
+        },
+        Assignment {
+            date: date1,
+            place: "Place B".to_string(),
+            person: "Person1".to_string(),
+        },
+    ];
+
+    let date2 = NaiveDate::from_ymd_opt(2025, 9, 3).unwrap();
+
+    // Create test people with services at multiple places
+    let group_state = Rc::new(RefCell::new(GroupState::default()));
+    let mut person1 = PersonState::new(
+        "Person1".to_string(),
+        "Place A".to_string(),
+        Rc::clone(&group_state),
+    );
+    person1.register_service(date1, "Place A".to_string());
+    person1.register_service(date1, "Place B".to_string());
+    person1.register_service(date2, "Place A".to_string());
+
+    // Verify place_counts before storing
+    let place_counts = person1.place_counts();
+    assert_eq!(*place_counts.get("Place A").unwrap(), 2);
+    assert_eq!(*place_counts.get("Place B").unwrap(), 1);
+
+    let people = vec![person1];
+
+    // Close the temp file so store_csv can create a new one
+    drop(temp_file);
+
+    // Test the function
+    let result = store_csv(assignments, people, &file_path);
+    if let Err(ref e) = result {
+        panic!("store_csv failed: {:?}", e);
+    }
+    assert!(result.is_ok());
+
+    // Verify file content includes place counts information
+    let content = std::fs::read_to_string(&file_path).unwrap();
+    assert!(content.contains("Person1"));
+    assert!(content.contains("total: 3"));
+    assert!(content.contains("Mon:"));
+    assert!(content.contains("Wed:"));
+    assert!(content.contains("different_place: 1"));
+
+    // Clean up
+    let _ = std::fs::remove_file(&file_path);
+}
+
+#[test]
+fn test_store_csv_multiple_people_with_places() {
+    use chrono::NaiveDate;
+    use duty_roster::schedule::GroupState;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use tempfile::NamedTempFile;
+
+    // Create a temporary file for testing
+    let temp_file = NamedTempFile::new().unwrap();
+    let file_path = temp_file.path().to_string_lossy().to_string();
+
+    let date1 = NaiveDate::from_ymd_opt(2025, 9, 1).unwrap();
+
+    // Use same date for all assignments so CSV has proper structure
+    let assignments = vec![
+        Assignment {
+            date: date1,
+            place: "Place A".to_string(),
+            person: "Alice".to_string(),
+        },
+        Assignment {
+            date: date1,
+            place: "Place B".to_string(),
+            person: "Bob".to_string(),
+        },
+    ];
+
+    // Create multiple people
+    let group_state = Rc::new(RefCell::new(GroupState::default()));
+
+    let mut alice = PersonState::new(
+        "Alice".to_string(),
+        "Place A".to_string(),
+        Rc::clone(&group_state),
+    );
+    alice.register_service(date1, "Place A".to_string());
+
+    let mut bob = PersonState::new(
+        "Bob".to_string(),
+        "Place B".to_string(),
+        Rc::clone(&group_state),
+    );
+    bob.register_service(date1, "Place B".to_string());
+
+    let people = vec![alice, bob];
+
+    // Close the temp file so store_csv can create a new one
+    drop(temp_file);
+
+    // Test the function
+    let result = store_csv(assignments, people, &file_path);
+    assert!(result.is_ok());
+
+    // Verify file content
+    let content = std::fs::read_to_string(&file_path).unwrap();
+    assert!(content.contains("Alice"));
+    assert!(content.contains("Bob"));
+    assert!(content.contains("total: 1"));
+
+    // Clean up
+    let _ = std::fs::remove_file(&file_path);
+}

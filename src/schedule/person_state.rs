@@ -22,6 +22,7 @@ pub struct PersonState {
     total_services: usize,
     last_service: Option<NaiveDate>,
     weekday_counts: HashMap<Weekday, usize>, // weekday → count
+    place_counts: HashMap<String, usize>,    // place → count
     group_state: Rc<RefCell<GroupState>>,
     different_place_services: usize,
 }
@@ -34,6 +35,7 @@ impl PersonState {
             total_services: 0,
             last_service: None,
             weekday_counts: HashMap::new(),
+            place_counts: HashMap::new(),
             group_state,
             different_place_services: 0,
         }
@@ -43,6 +45,7 @@ impl PersonState {
         self.total_services += 1;
         self.last_service = Some(date);
         *self.weekday_counts.entry(date.weekday()).or_default() += 1;
+        *self.place_counts.entry(place.clone()).or_default() += 1;
         *self.group_state.borrow_mut() = GroupState {
             last_service: Some(date),
         };
@@ -66,6 +69,16 @@ impl PersonState {
             *count -= 1;
             if *count == 0 {
                 self.weekday_counts.remove(&date.weekday());
+            }
+        }
+
+        // Update place counts
+        if let Some(count) = self.place_counts.get_mut(&place)
+            && *count > 0
+        {
+            *count -= 1;
+            if *count == 0 {
+                self.place_counts.remove(&place);
             }
         }
 
@@ -132,6 +145,10 @@ impl PersonState {
 
     pub fn weekday_counts(&self) -> HashMap<Weekday, usize> {
         self.weekday_counts.clone()
+    }
+
+    pub fn place_counts(&self) -> HashMap<String, usize> {
+        self.place_counts.clone()
     }
 
     pub fn different_place_services(&self) -> usize {
@@ -609,5 +626,211 @@ mod tests {
         // Alice has fewer services in a different place, usually we would prefer Bob
         // but as we need a service for Alice place, prefer Alice
         assert!(key_a < key_b, "Alice should sort before Bob");
+    }
+
+    #[test]
+    fn place_counts_tracks_services_by_place() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new("Alice".to_string(), "A".to_string(), Rc::clone(&group_state));
+
+        p.register_service(d(2023, 9, 1), "A".to_string());
+        p.register_service(d(2023, 9, 2), "B".to_string());
+        p.register_service(d(2023, 9, 3), "A".to_string());
+        p.register_service(d(2023, 9, 4), "C".to_string());
+
+        let place_counts = p.place_counts();
+        assert_eq!(*place_counts.get("A").unwrap(), 2);
+        assert_eq!(*place_counts.get("B").unwrap(), 1);
+        assert_eq!(*place_counts.get("C").unwrap(), 1);
+    }
+
+    #[test]
+    fn place_counts_decrements_on_unregister() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new("Bob".to_string(), "X".to_string(), Rc::clone(&group_state));
+
+        p.register_service(d(2023, 9, 1), "X".to_string());
+        p.register_service(d(2023, 9, 2), "Y".to_string());
+        p.register_service(d(2023, 9, 3), "X".to_string());
+
+        assert_eq!(*p.place_counts().get("X").unwrap(), 2);
+        assert_eq!(*p.place_counts().get("Y").unwrap(), 1);
+
+        p.unregister_service(d(2023, 9, 1), "X".to_string());
+
+        assert_eq!(*p.place_counts().get("X").unwrap(), 1);
+        assert_eq!(*p.place_counts().get("Y").unwrap(), 1);
+    }
+
+    #[test]
+    fn place_counts_removes_zero_counts() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new("Charlie".to_string(), "P".to_string(), Rc::clone(&group_state));
+
+        p.register_service(d(2023, 9, 1), "Q".to_string());
+        assert_eq!(*p.place_counts().get("Q").unwrap(), 1);
+
+        p.unregister_service(d(2023, 9, 1), "Q".to_string());
+        assert!(!p.place_counts().contains_key("Q"));
+    }
+
+    #[test]
+    fn place_counts_empty_for_new_person() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let p = PersonState::new("Dave".to_string(), "D".to_string(), Rc::clone(&group_state));
+
+        let place_counts = p.place_counts();
+        assert!(place_counts.is_empty());
+    }
+
+    #[test]
+    fn place_counts_multiple_services_same_place() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new("Eve".to_string(), "E".to_string(), Rc::clone(&group_state));
+
+        // Register 5 services at the same place
+        for i in 1..=5 {
+            p.register_service(d(2023, 9, i), "E".to_string());
+        }
+
+        let place_counts = p.place_counts();
+        assert_eq!(*place_counts.get("E").unwrap(), 5);
+        assert_eq!(place_counts.len(), 1);
+    }
+
+    #[test]
+    fn place_counts_with_many_different_places() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new("Frank".to_string(), "F".to_string(), Rc::clone(&group_state));
+
+        // Register services at 5 different places
+        p.register_service(d(2023, 9, 1), "Place1".to_string());
+        p.register_service(d(2023, 9, 2), "Place2".to_string());
+        p.register_service(d(2023, 9, 3), "Place3".to_string());
+        p.register_service(d(2023, 9, 4), "Place4".to_string());
+        p.register_service(d(2023, 9, 5), "Place5".to_string());
+
+        let place_counts = p.place_counts();
+        assert_eq!(place_counts.len(), 5);
+        assert_eq!(*place_counts.get("Place1").unwrap(), 1);
+        assert_eq!(*place_counts.get("Place2").unwrap(), 1);
+        assert_eq!(*place_counts.get("Place3").unwrap(), 1);
+        assert_eq!(*place_counts.get("Place4").unwrap(), 1);
+        assert_eq!(*place_counts.get("Place5").unwrap(), 1);
+    }
+
+    #[test]
+    fn place_counts_unregister_nonexistent_place() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new("Grace".to_string(), "G".to_string(), Rc::clone(&group_state));
+
+        p.register_service(d(2023, 9, 1), "G".to_string());
+
+        // Try to unregister a place that was never registered
+        p.unregister_service(d(2023, 9, 2), "NonExistent".to_string());
+
+        // Original place count should be unaffected
+        assert_eq!(*p.place_counts().get("G").unwrap(), 1);
+        assert!(!p.place_counts().contains_key("NonExistent"));
+    }
+
+    #[test]
+    fn place_counts_unregister_when_zero() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new("Henry".to_string(), "H".to_string(), Rc::clone(&group_state));
+
+        // Don't register any services
+        // Try to unregister - should handle gracefully
+        p.unregister_service(d(2023, 9, 1), "H".to_string());
+
+        let place_counts = p.place_counts();
+        assert!(place_counts.is_empty());
+    }
+
+    #[test]
+    fn place_counts_unregister_multiple_times() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new("Iris".to_string(), "I".to_string(), Rc::clone(&group_state));
+
+        p.register_service(d(2023, 9, 1), "I".to_string());
+        p.register_service(d(2023, 9, 2), "I".to_string());
+        p.register_service(d(2023, 9, 3), "I".to_string());
+
+        assert_eq!(*p.place_counts().get("I").unwrap(), 3);
+
+        // Unregister twice
+        p.unregister_service(d(2023, 9, 1), "I".to_string());
+        assert_eq!(*p.place_counts().get("I").unwrap(), 2);
+
+        p.unregister_service(d(2023, 9, 2), "I".to_string());
+        assert_eq!(*p.place_counts().get("I").unwrap(), 1);
+
+        // Unregister one more time - should remove the entry
+        p.unregister_service(d(2023, 9, 3), "I".to_string());
+        assert!(!p.place_counts().contains_key("I"));
+    }
+
+    #[test]
+    fn place_counts_mixed_register_and_unregister() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new("Jack".to_string(), "J".to_string(), Rc::clone(&group_state));
+
+        // Register services at two places
+        p.register_service(d(2023, 9, 1), "J".to_string());
+        p.register_service(d(2023, 9, 2), "K".to_string());
+        p.register_service(d(2023, 9, 3), "J".to_string());
+        p.register_service(d(2023, 9, 4), "K".to_string());
+
+        assert_eq!(*p.place_counts().get("J").unwrap(), 2);
+        assert_eq!(*p.place_counts().get("K").unwrap(), 2);
+
+        // Unregister one from each
+        p.unregister_service(d(2023, 9, 1), "J".to_string());
+        p.unregister_service(d(2023, 9, 2), "K".to_string());
+
+        assert_eq!(*p.place_counts().get("J").unwrap(), 1);
+        assert_eq!(*p.place_counts().get("K").unwrap(), 1);
+
+        // Register more at J
+        p.register_service(d(2023, 9, 5), "J".to_string());
+        assert_eq!(*p.place_counts().get("J").unwrap(), 2);
+    }
+
+    #[test]
+    fn place_counts_getter_returns_clone() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new("Kate".to_string(), "K".to_string(), Rc::clone(&group_state));
+
+        p.register_service(d(2023, 9, 1), "K".to_string());
+
+        // Get a clone of place counts
+        let mut counts1 = p.place_counts();
+        assert_eq!(*counts1.get("K").unwrap(), 1);
+
+        // Modify the clone
+        counts1.insert("K".to_string(), 999);
+
+        // Original should be unchanged
+        let counts2 = p.place_counts();
+        assert_eq!(*counts2.get("K").unwrap(), 1);
+    }
+
+    #[test]
+    fn place_counts_with_special_place_names() {
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new("Leo".to_string(), "L".to_string(), Rc::clone(&group_state));
+
+        // Test with special characters and spaces
+        p.register_service(d(2023, 9, 1), "Place-A".to_string());
+        p.register_service(d(2023, 9, 2), "Place B".to_string());
+        p.register_service(d(2023, 9, 3), "Place_C".to_string());
+        p.register_service(d(2023, 9, 4), "PlaceD!".to_string());
+
+        let place_counts = p.place_counts();
+        assert_eq!(*place_counts.get("Place-A").unwrap(), 1);
+        assert_eq!(*place_counts.get("Place B").unwrap(), 1);
+        assert_eq!(*place_counts.get("Place_C").unwrap(), 1);
+        assert_eq!(*place_counts.get("PlaceD!").unwrap(), 1);
+        assert_eq!(place_counts.len(), 4);
     }
 }

@@ -297,18 +297,64 @@ mod tests {
     #[test]
     fn test_handle_cell_click_swap() {
         let mut state = AppState::default();
-        state.assignments = create_test_assignments();
-        state.people = create_test_people();
+        // Use a single date with two places so we can click two valid cells on the same row.
+        let date = create_test_date(2025, 9, 1);
+        state.assignments = vec![
+            Assignment {
+                date,
+                place: "Place A".to_string(),
+                person: "Person1".to_string(),
+            },
+            Assignment {
+                date,
+                place: "Place B".to_string(),
+                person: "Person2".to_string(),
+            },
+        ];
+
+        // People must have matching services registered, otherwise swapping won't update stats.
+        let group_state1 = Rc::new(RefCell::new(GroupState::default()));
+        let group_state2 = Rc::new(RefCell::new(GroupState::default()));
+
+        let mut person1 = PersonState::new(
+            "Person1".to_string(),
+            "Place A".to_string(),
+            Rc::clone(&group_state1),
+        );
+        person1.register_service(date, "Place A".to_string());
+
+        let mut person2 = PersonState::new(
+            "Person2".to_string(),
+            "Place B".to_string(),
+            Rc::clone(&group_state2),
+        );
+        person2.register_service(date, "Place B".to_string());
+
+        state.people = vec![person1, person2];
 
         // First click selects the cell
         let pos1 = CellPosition { row: 1, column: 1 };
         let _ = state.handle_cell_click(pos1);
 
         // Second click on different cell attempts swap
-        let pos2 = CellPosition { row: 2, column: 1 };
+        let pos2 = CellPosition { row: 1, column: 2 };
         let _ = state.handle_cell_click(pos2);
 
         // After swap attempt, no cell should be selected
         assert_eq!(state.selected_cell, None);
+
+        // Verify that the swap happened.
+        let a = state
+            .assignments
+            .iter()
+            .find(|a| a.date == date && a.place == "Place A")
+            .unwrap();
+        let b = state
+            .assignments
+            .iter()
+            .find(|a| a.date == date && a.place == "Place B")
+            .unwrap();
+        assert_eq!(a.person, "Person2");
+        assert_eq!(b.person, "Person1");
     }
 }

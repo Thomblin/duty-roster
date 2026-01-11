@@ -51,6 +51,27 @@ pub struct DutyRosterApp {
     state: AppState,
 }
 
+async fn wait_then_check_message_expiry_for(duration: tokio::time::Duration) -> Message {
+    tokio::time::sleep(duration).await;
+    Message::CheckMessageExpiry
+}
+
+async fn wait_then_check_message_expiry() -> Message {
+    wait_then_check_message_expiry_for(tokio::time::Duration::from_secs(3)).await
+}
+
+fn identity_message(msg: Message) -> Message {
+    msg
+}
+
+fn map_save_file_result(filename_for_message: String, result: Result<(), String>) -> Message {
+    if result.is_ok() {
+        Message::ShowSuccessMessage(format!("Schedule saved to {filename_for_message}"))
+    } else {
+        Message::ScheduleSaved(result)
+    }
+}
+
 impl Application for DutyRosterApp {
     type Executor = executor::Default;
     type Message = Message;
@@ -150,46 +171,8 @@ impl Application for DutyRosterApp {
             }
 
             Message::SaveSchedule(filename) => {
-                // Convert assignments to CSV for saving
-                match assignments_to_csv(&self.state.assignments) {
-                    Ok(csv_content) => {
-                        // Create summary content directly from people states
-                        let mut summary_content = String::new();
-                        for person in &self.state.people {
-                            let name = person.name();
-                            let total = person.total_services();
-                            summary_content.push_str(&format!("{name}, total: {total}"));
-
-                            for (day, count) in person.weekday_counts() {
-                                summary_content.push_str(&format!(", {day}: {count}"));
-                            }
-
-                            summary_content.push_str(&format!(
-                                ", different_place: {}\n",
-                                person.different_place_services()
-                            ));
-                        }
-
-                        // Save the file
-                        let filename_for_message = filename.clone(); // Clone for the success message
-                        Command::perform(
-                            utils::save_file(filename, csv_content, summary_content),
-                            move |result| {
-                                if result.is_ok() {
-                                    Message::ShowSuccessMessage(format!(
-                                        "Schedule saved to {filename_for_message}"
-                                    ))
-                                } else {
-                                    Message::ScheduleSaved(result)
-                                }
-                            },
-                        )
-                    }
-                    Err(e) => {
-                        self.state.error = Some(format!("Failed to create CSV: {e}"));
-                        Command::none()
-                    }
-                }
+                let csv_result = assignments_to_csv(&self.state.assignments);
+                self.handle_save_schedule(filename, csv_result)
             }
             Message::ScheduleSaved(Ok(())) => {
                 // Successfully saved - this is now handled directly in the SaveSchedule handler
@@ -203,11 +186,8 @@ impl Application for DutyRosterApp {
 
                 // Schedule a check after 3 seconds
                 Command::perform(
-                    async {
-                        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-                        Message::CheckMessageExpiry
-                    },
-                    |msg| msg,
+                    wait_then_check_message_expiry(),
+                    identity_message,
                 )
             }
 
@@ -365,6 +345,45 @@ impl Application for DutyRosterApp {
     }
 }
 
+impl DutyRosterApp {
+    fn handle_save_schedule(
+        &mut self,
+        filename: String,
+        csv_result: Result<String, Box<dyn std::error::Error>>,
+    ) -> Command<Message> {
+        match csv_result {
+            Ok(csv_content) => {
+                // Create summary content directly from people states
+                let mut summary_content = String::new();
+                for person in &self.state.people {
+                    let name = person.name();
+                    let total = person.total_services();
+                    summary_content.push_str(&format!("{name}, total: {total}"));
+
+                    for (day, count) in person.weekday_counts() {
+                        summary_content.push_str(&format!(", {day}: {count}"));
+                    }
+
+                    summary_content.push_str(&format!(
+                        ", different_place: {}\n",
+                        person.different_place_services()
+                    ));
+                }
+
+                let filename_for_message = filename.clone();
+                Command::perform(
+                    utils::save_file(filename, csv_content, summary_content),
+                    move |result| map_save_file_result(filename_for_message, result),
+                )
+            }
+            Err(e) => {
+                self.state.error = Some(format!("Failed to create CSV: {e}"));
+                Command::none()
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -373,6 +392,7 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
     use std::time::Instant;
+    use tempfile::TempDir;
 
     fn create_test_date(year: i32, month: u32, day: u32) -> NaiveDate {
         NaiveDate::from_ymd_opt(year, month, day).unwrap()
@@ -382,6 +402,12 @@ mod tests {
         DutyRosterApp {
             state: AppState::new(),
         }
+    }
+
+    #[test]
+    fn test_title() {
+        let app = create_test_app();
+        assert_eq!(app.title(), "Duty Roster".to_string());
     }
 
     fn create_test_assignments() -> Vec<Assignment> {
@@ -581,6 +607,15 @@ mod tests {
     }
 
     #[test]
+    fn test_update_generate_schedule_with_config() {
+        let mut app = create_test_app();
+        app.state.selected_config = Some("test_config.toml".to_string());
+
+        let cmd = app.update(Message::GenerateSchedule);
+        let _ = cmd;
+    }
+
+    #[test]
     fn test_update_save_schedule_with_date_no_assignments() {
         let mut app = create_test_app();
 
@@ -673,6 +708,47 @@ mod tests {
     }
 
     #[test]
+    fn test_update_schedule_generated_populates_people_when_config_loads() {
+        let mut app = create_test_app();
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("test_config.toml");
+
+        let config_content = r#"
+            [dates]
+            from = "2025-09-01"
+            to = "2025-09-02"
+            weekdays = ["Mon", "Tue"]
+            exceptions = []
+
+            [places]
+            places = ["Place A"]
+
+            [[group]]
+            name = "Test"
+            place = "Place A"
+
+            [[group.members]]
+            name = "Person1"
+
+            [rules]
+            sort = ["sortByLeastServices"]
+            filter = []
+        "#;
+        std::fs::write(&config_path, config_content).unwrap();
+
+        app.state.selected_config = Some(config_path.to_string_lossy().to_string());
+
+        let assignments = vec![Assignment {
+            date: create_test_date(2025, 9, 1),
+            place: "Place A".to_string(),
+            person: "Person1".to_string(),
+        }];
+
+        let _ = app.update(Message::ScheduleGenerated(Ok(assignments)));
+        assert!(!app.state.people.is_empty());
+    }
+
+    #[test]
     fn test_update_schedule_saved_error() {
         let mut app = create_test_app();
 
@@ -740,5 +816,76 @@ mod tests {
 
         // The test passes if we get here without panicking
         assert!(true);
+    }
+
+    #[test]
+    fn test_handle_save_schedule_csv_error_branch() {
+        let mut app = create_test_app();
+        let err: Box<dyn std::error::Error> =
+            Box::new(std::io::Error::new(std::io::ErrorKind::Other, "csv error"));
+
+        let _cmd = app.handle_save_schedule("x.csv".to_string(), Err(err));
+        assert!(app
+            .state
+            .error
+            .as_ref()
+            .unwrap()
+            .contains("Failed to create CSV"));
+    }
+
+    #[test]
+    fn test_map_save_file_result() {
+        let msg = map_save_file_result("out.csv".to_string(), Ok(()));
+        match msg {
+            Message::ShowSuccessMessage(s) => assert!(s.contains("out.csv")),
+            _ => panic!("expected ShowSuccessMessage"),
+        }
+
+        let msg = map_save_file_result("out.csv".to_string(), Err("nope".to_string()));
+        match msg {
+            Message::ScheduleSaved(Err(e)) => assert_eq!(e, "nope"),
+            _ => panic!("expected ScheduleSaved(Err)"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_wait_then_check_message_expiry_zero_duration() {
+        let msg = wait_then_check_message_expiry_for(tokio::time::Duration::from_millis(0)).await;
+        assert!(matches!(msg, Message::CheckMessageExpiry));
+    }
+
+    #[test]
+    fn test_update_mouse_entered_name_not_found() {
+        let mut app = create_test_app();
+        app.state.name_hovered = Some("Someone".to_string());
+
+        let pos = CellPosition { row: 1, column: 1 };
+        let _ = app.update(Message::MouseEntered(pos));
+        assert_eq!(app.state.name_hovered, None);
+    }
+
+    #[test]
+    fn test_view_branches() {
+        let mut app = create_test_app();
+
+        app.state.error = Some("err".to_string());
+        app.state.success_message = Some("ok".to_string());
+        let _ = app.view();
+
+        app.state.assignments = create_test_assignments();
+        app.state.active_tab = Tab::Schedule;
+        let _ = app.view();
+
+        let group_state = Rc::new(RefCell::new(GroupState::default()));
+        let mut p = PersonState::new(
+            "Person1".to_string(),
+            "Place A".to_string(),
+            Rc::clone(&group_state),
+        );
+        p.register_service(create_test_date(2025, 9, 1), "Place A".to_string());
+
+        app.state.people = vec![p];
+        app.state.active_tab = Tab::Summary;
+        let _ = app.view();
     }
 }

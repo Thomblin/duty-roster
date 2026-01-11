@@ -24,30 +24,34 @@ pub async fn save_file(
     summary_content: String,
 ) -> Result<(), String> {
     match File::create(&filename) {
-        Ok(mut file) => {
-            // Write CSV content
-            if let Err(e) = file.write_all(csv_content.as_bytes()) {
-                return Err(format!("Failed to write CSV content: {e}"));
-            }
-
-            // Add a newline between CSV and summary
-            if let Err(e) = file.write_all(b"\n") {
-                return Err(format!("Failed to write newline: {e}"));
-            }
-
-            // Write summary content
-            match file.write_all(summary_content.as_bytes()) {
-                Ok(_) => Ok(()),
-                Err(e) => Err(format!("Failed to write summary content: {e}")),
-            }
-        }
+        Ok(file) => write_schedule_and_summary(file, &csv_content, &summary_content),
         Err(e) => Err(format!("Failed to create file: {e}")),
+    }
+}
+
+fn write_schedule_and_summary(
+    mut writer: impl Write,
+    csv_content: &str,
+    summary_content: &str,
+) -> Result<(), String> {
+    if let Err(e) = writer.write_all(csv_content.as_bytes()) {
+        return Err(format!("Failed to write CSV content: {e}"));
+    }
+
+    if let Err(e) = writer.write_all(b"\n") {
+        return Err(format!("Failed to write newline: {e}"));
+    }
+
+    match writer.write_all(summary_content.as_bytes()) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("Failed to write summary content: {e}")),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io;
     use tempfile::NamedTempFile;
 
     #[tokio::test]
@@ -132,6 +136,58 @@ mod tests {
         .await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Failed to create file"));
+    }
+
+    struct FailingWriter {
+        fail_on_call: usize,
+        calls: usize,
+    }
+
+    impl Write for FailingWriter {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            self.calls += 1;
+            if self.calls == self.fail_on_call && !buf.is_empty() {
+                return Err(io::Error::new(io::ErrorKind::Other, "write failed"));
+            }
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_write_schedule_and_summary_csv_write_error() {
+        let writer = FailingWriter {
+            fail_on_call: 1,
+            calls: 0,
+        };
+        let result = write_schedule_and_summary(writer, "csv", "summary");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Failed to write CSV content"));
+    }
+
+    #[test]
+    fn test_write_schedule_and_summary_newline_write_error() {
+        let writer = FailingWriter {
+            fail_on_call: 2,
+            calls: 0,
+        };
+        let result = write_schedule_and_summary(writer, "csv", "summary");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Failed to write newline"));
+    }
+
+    #[test]
+    fn test_write_schedule_and_summary_summary_write_error() {
+        let writer = FailingWriter {
+            fail_on_call: 3,
+            calls: 0,
+        };
+        let result = write_schedule_and_summary(writer, "csv", "summary");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Failed to write summary content"));
     }
 
     // Mock test to simulate write errors

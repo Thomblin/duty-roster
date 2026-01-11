@@ -344,6 +344,36 @@ mod tests {
     }
 
     #[test]
+    fn test_table_styles() {
+        let theme = Theme::default();
+
+        let header = <HeaderStyle as container::StyleSheet>::appearance(&HeaderStyle, &theme);
+        assert!(header.background.is_some());
+
+        let header_row =
+            <HeaderRowStyle as container::StyleSheet>::appearance(&HeaderRowStyle, &theme);
+        assert!(header_row.background.is_some());
+
+        let active = <CellButtonStyle as button::StyleSheet>::active(&CellButtonStyle, &theme);
+        assert!(active.background.is_some());
+
+        let hovered = <CellButtonStyle as button::StyleSheet>::hovered(&CellButtonStyle, &theme);
+        assert!(hovered.background.is_some());
+
+        let active_hl = <HighlightedCellButtonStyle as button::StyleSheet>::active(
+            &HighlightedCellButtonStyle,
+            &theme,
+        );
+        assert!(active_hl.background.is_some());
+
+        let hovered_hl = <HighlightedCellButtonStyle as button::StyleSheet>::hovered(
+            &HighlightedCellButtonStyle,
+            &theme,
+        );
+        assert!(hovered_hl.background.is_some());
+    }
+
+    #[test]
     fn test_table_state_new() {
         let assignments = create_test_assignments();
         let table_state = TableState::new(&assignments);
@@ -367,6 +397,7 @@ mod tests {
 
         assert!(prev.is_none());
         assert_eq!(table_state.selected_cell, Some(pos));
+        assert_eq!(table_state.selected_cell(), Some(&pos));
     }
 
     #[test]

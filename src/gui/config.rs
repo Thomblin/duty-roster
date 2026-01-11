@@ -6,38 +6,37 @@ use std::path::Path;
 
 /// Find all TOML config files in the current directory and subdirectories
 pub async fn find_config_files() -> Result<Vec<String>, String> {
-    // Look for config files in the current directory and subdirectories
+    find_config_files_in(Path::new("."))
+}
+
+fn find_config_files_in(root: &Path) -> Result<Vec<String>, String> {
     let mut config_files = Vec::new();
 
-    // Files to exclude
     let excluded_files = ["Cargo.toml", "deny.toml", "cargo-deny.toml"];
 
-    // Start with the current directory
-    if let Ok(entries) = fs::read_dir(".") {
+    if let Ok(entries) = fs::read_dir(root) {
         for entry in entries.filter_map(Result::ok) {
             let path = entry.path();
             if path.is_file()
                 && path.extension().is_some_and(|ext| ext == "toml")
                 && let Some(file_name) = path.file_name().and_then(|f| f.to_str())
                 && !excluded_files.contains(&file_name)
-                && let Some(path_str) = path.to_str()
             {
-                config_files.push(path_str.to_string());
+                config_files.push(path.to_string_lossy().to_string());
             }
         }
     }
 
-    // Add test directory if it exists
-    if let Ok(entries) = fs::read_dir("test") {
+    let test_dir = root.join("test");
+    if let Ok(entries) = fs::read_dir(test_dir) {
         for entry in entries.filter_map(Result::ok) {
             let path = entry.path();
             if path.is_file()
                 && path.extension().is_some_and(|ext| ext == "toml")
                 && let Some(file_name) = path.file_name().and_then(|f| f.to_str())
                 && !excluded_files.contains(&file_name)
-                && let Some(path_str) = path.to_str()
             {
-                config_files.push(path_str.to_string());
+                config_files.push(path.to_string_lossy().to_string());
             }
         }
     }
@@ -127,11 +126,10 @@ mod tests {
         assert!(filename.ends_with(".csv"));
     }
 
-    #[tokio::test]
-    async fn test_find_config_files() {
+    #[test]
+    fn test_find_config_files() {
         // Create a temporary directory for testing
         let temp_dir = TempDir::new().unwrap();
-        let current_dir = std::env::current_dir().unwrap();
 
         // Create test files
         let config1_path = temp_dir.path().join("config1.toml");
@@ -150,11 +148,8 @@ mod tests {
         let test_config_path = test_dir.join("test_config.toml");
         fs::write(&test_config_path, "test content").unwrap();
 
-        // Change to the temporary directory for testing
-        std::env::set_current_dir(temp_dir.path()).unwrap();
-
         // Test the function
-        let result = find_config_files().await;
+        let result = find_config_files_in(temp_dir.path());
         assert!(result.is_ok());
 
         let config_files = result.unwrap();
@@ -173,8 +168,15 @@ mod tests {
                 .any(|path| path.contains("test_config.toml"))
         );
 
-        // Restore the original directory
-        std::env::set_current_dir(current_dir).unwrap();
+    }
+
+    #[test]
+    fn test_find_config_files_no_configs() {
+        let temp_dir = TempDir::new().unwrap();
+
+        let result = find_config_files_in(temp_dir.path());
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("No config files found"));
     }
 
     #[test]
@@ -184,6 +186,11 @@ mod tests {
         enum TestMessage {
             ConfigSelected(String),
             Refresh,
+        }
+
+        let msg = TestMessage::ConfigSelected("x".to_string());
+        if let TestMessage::ConfigSelected(s) = msg {
+            assert_eq!(s, "x");
         }
 
         let config_files: Vec<String> = vec![];

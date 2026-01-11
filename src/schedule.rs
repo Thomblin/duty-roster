@@ -75,10 +75,12 @@ pub fn create_schedule(
 #[cfg(test)]
 mod tests {
     use crate::{config::load_config, dates::get_weekdays, schedule::create_schedule};
+    use std::path::Path;
 
     #[test]
     fn create_schedule_should_provide_reasonable_schedule() {
-        let config = load_config("test/config.toml").unwrap();
+        let config_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("test/config.toml");
+        let config = load_config(config_path.to_str().unwrap()).unwrap();
         let dates = get_weekdays(&config.dates.from, &config.dates.to, &config.dates.weekdays);
 
         let (assignments, people) = create_schedule(&dates, &config);
