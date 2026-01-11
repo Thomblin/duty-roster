@@ -38,6 +38,7 @@ pub enum Message {
     ScheduleSaved(Result<(), String>),
     TabSelected(Tab),
     CellClicked(CellPosition),
+    CellRightClicked(CellPosition),
     CellHovered(CellPosition),
     MouseEntered(CellPosition),
     MouseLeft,
@@ -210,27 +211,28 @@ impl Application for DutyRosterApp {
                 Command::none()
             }
             Message::CellClicked(position) => self.state.handle_cell_click(position),
-            Message::CellHovered(position) => {
-                self.state.hovered_cell = Some(position);
+            Message::CellRightClicked(position) => {
                 if let Some((_, _, person)) = self.state.get_cell_info(position) {
-                    self.state.name_hovered = Some(person);
+                    if self.state.name_hovered.as_deref() == Some(&person) {
+                        self.state.name_hovered = None;
+                    } else {
+                        self.state.name_hovered = Some(person);
+                    }
                 } else {
                     self.state.name_hovered = None;
                 }
+                Command::none()
+            }
+            Message::CellHovered(position) => {
+                self.state.hovered_cell = Some(position);
                 Command::none()
             }
             Message::MouseEntered(position) => {
                 self.state.hovered_cell = Some(position);
-                if let Some((_, _, person)) = self.state.get_cell_info(position) {
-                    self.state.name_hovered = Some(person);
-                } else {
-                    self.state.name_hovered = None;
-                }
                 Command::none()
             }
             Message::MouseLeft => {
                 self.state.hovered_cell = None;
-                self.state.name_hovered = None;
                 Command::none()
             }
             Message::Error(e) => {
@@ -484,7 +486,7 @@ mod tests {
         let _cmd = app.update(message);
 
         assert_eq!(app.state.hovered_cell, Some(position));
-        assert_eq!(app.state.name_hovered, Some("Person1".to_string()));
+        assert_eq!(app.state.name_hovered, None);
     }
 
     #[test]
@@ -501,6 +503,20 @@ mod tests {
         let _cmd = app.update(message);
 
         assert_eq!(app.state.hovered_cell, None);
+        assert_eq!(app.state.name_hovered, Some("Person1".to_string()));
+    }
+
+    #[test]
+    fn test_update_cell_right_clicked_toggles_name_hovered() {
+        let mut app = create_test_app();
+        app.state.assignments = create_test_assignments();
+
+        let position = CellPosition { row: 1, column: 1 };
+
+        let _cmd = app.update(Message::CellRightClicked(position));
+        assert_eq!(app.state.name_hovered, Some("Person1".to_string()));
+
+        let _cmd = app.update(Message::CellRightClicked(position));
         assert_eq!(app.state.name_hovered, None);
     }
 
@@ -861,7 +877,7 @@ mod tests {
 
         let pos = CellPosition { row: 1, column: 1 };
         let _ = app.update(Message::MouseEntered(pos));
-        assert_eq!(app.state.name_hovered, None);
+        assert_eq!(app.state.name_hovered, Some("Someone".to_string()));
     }
 
     #[test]

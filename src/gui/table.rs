@@ -209,6 +209,7 @@ pub fn create_table_from_assignments<'a>(
             // Wrap in mouse_area to detect hover events
             let cell_with_hover = mouse_area(cell_btn)
                 .on_enter(Message::CellHovered(cell_position))
+                .on_right_press(Message::CellRightClicked(cell_position))
                 .on_exit(Message::MouseLeft);
 
             row_content = row_content.push(cell_with_hover);
