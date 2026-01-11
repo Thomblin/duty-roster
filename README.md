@@ -16,6 +16,7 @@ Duty Roster is a Rust application for creating and managing schedules for people
 - **Interactive GUI**: Easily view, edit, and manage schedules through a user-friendly interface
 - **Schedule Generation**: Automatically create optimized schedules based on configurable rules
 - **Interactive Editing**: Click on cells to swap assignments between people
+- **Highlighting**: Toggle up to 4 people highlights (grey/yellow/green/blue) in the schedule and summary views to allow faster scanning for manual adjustments
 - **Statistics Tracking**: View summaries of assignments including total services, weekday counts, and more
 - **CSV Export**: Save schedules to CSV files with detailed summaries
 - **Configurable Rules**: Define custom rules for schedule generation in TOML files
@@ -36,8 +37,12 @@ In the GUI, you can:
 1. Select a configuration file from the dropdown
 2. Generate a schedule
 3. View and edit assignments by clicking on cells
-4. Save the schedule to a CSV file
-5. View statistics in the Summary tab
+4. Toggle highlighting of people
+   - Right-click a person in the schedule table to toggle highlighting
+   - Click a person in the Summary tab to toggle highlighting
+   - Up to 4 people can be highlighted at once (grey/yellow/green/blue); click again to deselect
+5. Save the schedule to a CSV file
+6. View statistics in the Summary tab
 
 ### CLI Mode
 
@@ -159,4 +164,4 @@ If you discover a security vulnerability in this project, please report it by cr
 
 ## License
 
-MIT
+Apache-2.0
