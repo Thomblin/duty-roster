@@ -3,8 +3,7 @@ use iced::{Application, Command, Element, Length, Theme, executor};
 
 use crate::config::load_config;
 use crate::csv::assignments_to_csv;
-use crate::dates::get_weekdays;
-use crate::schedule::{Assignment, create_schedule};
+use crate::schedule::Assignment;
 
 use super::state::AppState;
 use super::summary;
@@ -145,9 +144,14 @@ impl Application for DutyRosterApp {
                 if let Some(config_path) = &self.state.selected_config
                     && let Ok(config) = load_config(config_path)
                 {
-                    let dates =
-                        get_weekdays(&config.dates.from, &config.dates.to, &config.dates.weekdays);
-                    let (_, people) = create_schedule(&dates, &config);
+                    let mut people = crate::schedule::create_people(&config);
+
+                    for a in &self.state.assignments {
+                        if let Some(person) = people.iter_mut().find(|p| p.name() == a.person) {
+                            person.register_service(a.date, a.place.clone());
+                        }
+                    }
+
                     self.state.people = people;
                 }
 
@@ -385,8 +389,10 @@ impl DutyRosterApp {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::schedule::person_state::{GroupState, PersonState};
+    use crate::schedule::GroupState;
+    use crate::schedule::PersonState;
     use chrono::NaiveDate;
+    use std::collections::HashMap;
     use std::cell::RefCell;
     use std::rc::Rc;
     use std::time::Instant;
@@ -758,6 +764,93 @@ mod tests {
 
         let _ = app.update(Message::ScheduleGenerated(Ok(assignments)));
         assert!(!app.state.people.is_empty());
+    }
+
+    #[test]
+    fn test_schedule_generated_people_place_counts_match_assignments_multi_place() {
+        let mut app = create_test_app();
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("test_config.toml");
+
+        let config_content = r#"
+            [dates]
+            from = "2025-09-01"
+            to = "2025-09-10"
+            weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+            exceptions = []
+
+            [places]
+            places = ["Place A", "Place B", "Place C", "Place D"]
+
+            [[group]]
+            name = "G"
+            place = "Place A"
+
+            [[group.members]]
+            name = "Person1"
+
+            [[group.members]]
+            name = "Person2"
+
+            [[group.members]]
+            name = "Person3"
+
+            [[group.members]]
+            name = "Person4"
+
+            [rules]
+            sort = ["sortByLeastServices"]
+            filter = []
+        "#;
+        std::fs::write(&config_path, config_content).unwrap();
+
+        app.state.selected_config = Some(config_path.to_string_lossy().to_string());
+
+        let dates = vec![
+            create_test_date(2025, 9, 1),
+            create_test_date(2025, 9, 2),
+            create_test_date(2025, 9, 3),
+            create_test_date(2025, 9, 4),
+            create_test_date(2025, 9, 5),
+        ];
+        let places = vec![
+            "Place A".to_string(),
+            "Place B".to_string(),
+            "Place C".to_string(),
+            "Place D".to_string(),
+        ];
+
+        let mut assignments = Vec::new();
+        for date in dates {
+            for place in &places {
+                assignments.push(Assignment {
+                    date,
+                    place: place.clone(),
+                    person: "Person1 G".to_string(),
+                });
+            }
+        }
+
+        let _ = app.update(Message::ScheduleGenerated(Ok(assignments.clone())));
+
+        let mut expected: HashMap<(String, String), usize> = HashMap::new();
+        for a in &assignments {
+            *expected
+                .entry((a.person.clone(), a.place.clone()))
+                .or_default() += 1;
+        }
+
+        for person in &app.state.people {
+            let name = person.name();
+            for place in &places {
+                let got = person.place_counts().get(place).copied().unwrap_or(0);
+                let exp = expected
+                    .get(&(name.clone(), place.clone()))
+                    .copied()
+                    .unwrap_or(0);
+                assert_eq!(got, exp, "mismatch for {name} at {place}");
+            }
+        }
     }
 
     #[test]
