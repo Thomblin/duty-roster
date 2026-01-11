@@ -191,10 +191,7 @@ impl Application for DutyRosterApp {
                     Some(std::time::Instant::now() + std::time::Duration::from_secs(3));
 
                 // Schedule a check after 3 seconds
-                Command::perform(
-                    wait_then_check_message_expiry(),
-                    identity_message,
-                )
+                Command::perform(wait_then_check_message_expiry(), identity_message)
             }
 
             Message::CheckMessageExpiry => {
@@ -335,8 +332,10 @@ impl Application for DutyRosterApp {
                 }
                 Tab::Summary => {
                     if !self.state.people.is_empty() {
-                        let summary_view =
-                            summary::create_summary_view_from_people(&self.state.people, &self.state.highlighted_names);
+                        let summary_view = summary::create_summary_view_from_people(
+                            &self.state.people,
+                            &self.state.highlighted_names,
+                        );
                         content =
                             content.push(scrollable(summary_view).height(Length::FillPortion(3)));
                     }
@@ -397,8 +396,8 @@ mod tests {
     use crate::schedule::GroupState;
     use crate::schedule::PersonState;
     use chrono::NaiveDate;
-    use std::collections::HashMap;
     use std::cell::RefCell;
+    use std::collections::HashMap;
     use std::rc::Rc;
     use std::time::Instant;
     use tempfile::TempDir;
@@ -935,12 +934,13 @@ mod tests {
             Box::new(std::io::Error::new(std::io::ErrorKind::Other, "csv error"));
 
         let _cmd = app.handle_save_schedule("x.csv".to_string(), Err(err));
-        assert!(app
-            .state
-            .error
-            .as_ref()
-            .unwrap()
-            .contains("Failed to create CSV"));
+        assert!(
+            app.state
+                .error
+                .as_ref()
+                .unwrap()
+                .contains("Failed to create CSV")
+        );
     }
 
     #[test]

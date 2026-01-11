@@ -167,7 +167,6 @@ mod tests {
                 .iter()
                 .any(|path| path.contains("test_config.toml"))
         );
-
     }
 
     #[test]

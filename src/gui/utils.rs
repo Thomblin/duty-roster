@@ -187,7 +187,11 @@ mod tests {
         };
         let result = write_schedule_and_summary(writer, "csv", "summary");
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Failed to write summary content"));
+        assert!(
+            result
+                .unwrap_err()
+                .contains("Failed to write summary content")
+        );
     }
 
     // Mock test to simulate write errors

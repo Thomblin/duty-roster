@@ -158,41 +158,31 @@ pub fn create_summary_view_from_people<'a>(
         ])
         .padding(3);
 
-        rows.push(
-            match highlight_slot {
-                Some(0) => mouse_area(
-                    row_container.style(iced::theme::Container::Custom(Box::new(
-                        SummaryPersonHighlightStyle,
-                    ))),
-                )
+        rows.push(match highlight_slot {
+            Some(0) => mouse_area(row_container.style(iced::theme::Container::Custom(Box::new(
+                SummaryPersonHighlightStyle,
+            ))))
+            .on_press(Message::SummaryPersonClicked(person_key.clone()))
+            .into(),
+            Some(1) => mouse_area(row_container.style(iced::theme::Container::Custom(Box::new(
+                SummaryPersonHighlightStyleYellow,
+            ))))
+            .on_press(Message::SummaryPersonClicked(person_key.clone()))
+            .into(),
+            Some(2) => mouse_area(row_container.style(iced::theme::Container::Custom(Box::new(
+                SummaryPersonHighlightStyleGreen,
+            ))))
+            .on_press(Message::SummaryPersonClicked(person_key.clone()))
+            .into(),
+            Some(_) => mouse_area(row_container.style(iced::theme::Container::Custom(Box::new(
+                SummaryPersonHighlightStyleBlue,
+            ))))
+            .on_press(Message::SummaryPersonClicked(person_key.clone()))
+            .into(),
+            None => mouse_area(row_container)
                 .on_press(Message::SummaryPersonClicked(person_key.clone()))
                 .into(),
-                Some(1) => mouse_area(
-                    row_container.style(iced::theme::Container::Custom(Box::new(
-                        SummaryPersonHighlightStyleYellow,
-                    ))),
-                )
-                .on_press(Message::SummaryPersonClicked(person_key.clone()))
-                .into(),
-                Some(2) => mouse_area(
-                    row_container.style(iced::theme::Container::Custom(Box::new(
-                        SummaryPersonHighlightStyleGreen,
-                    ))),
-                )
-                .on_press(Message::SummaryPersonClicked(person_key.clone()))
-                .into(),
-                Some(_) => mouse_area(
-                    row_container.style(iced::theme::Container::Custom(Box::new(
-                        SummaryPersonHighlightStyleBlue,
-                    ))),
-                )
-                .on_press(Message::SummaryPersonClicked(person_key.clone()))
-                .into(),
-                None => mouse_area(row_container)
-                    .on_press(Message::SummaryPersonClicked(person_key.clone()))
-                    .into(),
-            },
-        );
+        });
     }
 
     column(rows).spacing(1).into()
@@ -240,10 +230,8 @@ mod tests {
     #[test]
     fn test_summary_styles() {
         let theme = Theme::default();
-        let header = <SummaryHeaderStyle as container::StyleSheet>::appearance(
-            &SummaryHeaderStyle,
-            &theme,
-        );
+        let header =
+            <SummaryHeaderStyle as container::StyleSheet>::appearance(&SummaryHeaderStyle, &theme);
         assert!(header.background.is_some());
 
         let col_header = <SummaryColumnHeaderStyle as container::StyleSheet>::appearance(
@@ -309,10 +297,22 @@ mod tests {
             Some("Dave".to_string()),
         ];
 
-        assert_eq!(highlight_slot_for_person(&highlighted_names, "Alice"), Some(0));
-        assert_eq!(highlight_slot_for_person(&highlighted_names, "Bob"), Some(1));
-        assert_eq!(highlight_slot_for_person(&highlighted_names, "Carol"), Some(2));
-        assert_eq!(highlight_slot_for_person(&highlighted_names, "Dave"), Some(3));
+        assert_eq!(
+            highlight_slot_for_person(&highlighted_names, "Alice"),
+            Some(0)
+        );
+        assert_eq!(
+            highlight_slot_for_person(&highlighted_names, "Bob"),
+            Some(1)
+        );
+        assert_eq!(
+            highlight_slot_for_person(&highlighted_names, "Carol"),
+            Some(2)
+        );
+        assert_eq!(
+            highlight_slot_for_person(&highlighted_names, "Dave"),
+            Some(3)
+        );
     }
 
     #[test]

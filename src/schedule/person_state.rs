@@ -631,7 +631,11 @@ mod tests {
     #[test]
     fn place_counts_tracks_services_by_place() {
         let group_state = Rc::new(RefCell::new(GroupState::default()));
-        let mut p = PersonState::new("Alice".to_string(), "A".to_string(), Rc::clone(&group_state));
+        let mut p = PersonState::new(
+            "Alice".to_string(),
+            "A".to_string(),
+            Rc::clone(&group_state),
+        );
 
         p.register_service(d(2023, 9, 1), "A".to_string());
         p.register_service(d(2023, 9, 2), "B".to_string());
@@ -665,7 +669,11 @@ mod tests {
     #[test]
     fn place_counts_removes_zero_counts() {
         let group_state = Rc::new(RefCell::new(GroupState::default()));
-        let mut p = PersonState::new("Charlie".to_string(), "P".to_string(), Rc::clone(&group_state));
+        let mut p = PersonState::new(
+            "Charlie".to_string(),
+            "P".to_string(),
+            Rc::clone(&group_state),
+        );
 
         p.register_service(d(2023, 9, 1), "Q".to_string());
         assert_eq!(*p.place_counts().get("Q").unwrap(), 1);
@@ -701,7 +709,11 @@ mod tests {
     #[test]
     fn place_counts_with_many_different_places() {
         let group_state = Rc::new(RefCell::new(GroupState::default()));
-        let mut p = PersonState::new("Frank".to_string(), "F".to_string(), Rc::clone(&group_state));
+        let mut p = PersonState::new(
+            "Frank".to_string(),
+            "F".to_string(),
+            Rc::clone(&group_state),
+        );
 
         // Register services at 5 different places
         p.register_service(d(2023, 9, 1), "Place1".to_string());
@@ -722,7 +734,11 @@ mod tests {
     #[test]
     fn place_counts_unregister_nonexistent_place() {
         let group_state = Rc::new(RefCell::new(GroupState::default()));
-        let mut p = PersonState::new("Grace".to_string(), "G".to_string(), Rc::clone(&group_state));
+        let mut p = PersonState::new(
+            "Grace".to_string(),
+            "G".to_string(),
+            Rc::clone(&group_state),
+        );
 
         p.register_service(d(2023, 9, 1), "G".to_string());
 
@@ -737,7 +753,11 @@ mod tests {
     #[test]
     fn place_counts_unregister_when_zero() {
         let group_state = Rc::new(RefCell::new(GroupState::default()));
-        let mut p = PersonState::new("Henry".to_string(), "H".to_string(), Rc::clone(&group_state));
+        let mut p = PersonState::new(
+            "Henry".to_string(),
+            "H".to_string(),
+            Rc::clone(&group_state),
+        );
 
         // Don't register any services
         // Try to unregister - should handle gracefully
