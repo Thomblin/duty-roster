@@ -12,14 +12,9 @@ pub use self::config::{find_config_files, generate_filename};
 
 /// Run the GUI application
 pub fn run() -> iced::Result {
-    use iced::Application;
-    self::app::DutyRosterApp::run(iced::Settings::default())
-}
-
-/// Create default settings for the application
-#[allow(dead_code)]
-fn create_default_settings() -> iced::Settings<()> {
-    iced::Settings::default()
+    iced::application(app::boot, app::update, app::view)
+        .title("Duty Roster")
+        .run()
 }
 
 #[cfg(test)]
@@ -50,8 +45,6 @@ mod tests {
 
 #[cfg(test)]
 mod tests_run {
-    use super::*;
-
     #[test]
     fn test_run_function_signature() {
         // We can't actually run the GUI in a test, but we can verify the function signature
@@ -70,17 +63,4 @@ mod tests_run {
         assert!(true);
     }
 
-    #[test]
-    fn test_create_default_settings() {
-        // Test that the function returns default settings
-        let settings = create_default_settings();
-
-        // Check that the settings have default values
-        assert_eq!(settings.id, None);
-        // Window size is not an Option in iced::Settings
-        assert_eq!(settings.flags, ());
-
-        // The function exists primarily to increase code coverage
-        assert!(true);
-    }
 }

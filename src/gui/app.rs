@@ -1,5 +1,5 @@
 use iced::widget::{button, column, container, row, scrollable, text};
-use iced::{Application, Command, Element, Length, Theme, executor};
+use iced::{Element, Fill, FillPortion, Task};
 
 use crate::config::load_config;
 use crate::csv::assignments_to_csv;
@@ -73,282 +73,264 @@ fn map_save_file_result(filename_for_message: String, result: Result<(), String>
     }
 }
 
-impl Application for DutyRosterApp {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
+/// Boot the application, returning initial state and task
+pub fn boot() -> (DutyRosterApp, Task<Message>) {
+    (
+        DutyRosterApp {
+            state: AppState::new(),
+        },
+        Task::perform(
+            async { crate::gui::find_config_files().await },
+            Message::ConfigsLoaded,
+        ),
+    )
+}
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Self {
-                state: AppState::new(),
-            },
-            Command::perform(
+/// Update the application state in response to a message
+pub fn update(app: &mut DutyRosterApp, message: Message) -> Task<Message> {
+    match message {
+        Message::ConfigsLoaded(Ok(files)) => {
+            app.state.config_files = files;
+            if !app.state.config_files.is_empty() && app.state.selected_config.is_none() {
+                let selected = app.state.config_files[0].clone();
+                app.state.selected_config = Some(selected);
+            }
+            Task::none()
+        }
+        Message::ConfigsLoaded(Err(e)) => {
+            app.state.error = Some(format!("Error loading configs: {e}"));
+            Task::none()
+        }
+        Message::ConfigSelected(config_path) => {
+            app.state.selected_config = Some(config_path.clone());
+            app.state.assignments = Vec::new();
+            app.state.people = Vec::new();
+            app.state.error = None;
+            Task::perform(
+                utils::generate_schedule(config_path),
+                Message::ScheduleGenerated,
+            )
+        }
+        Message::RefreshConfigList => {
+            // Only refresh the file list, don't generate a schedule
+            Task::perform(
                 async { crate::gui::find_config_files().await },
                 Message::ConfigsLoaded,
-            ),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Duty Roster")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
-        match message {
-            Message::ConfigsLoaded(Ok(files)) => {
-                self.state.config_files = files;
-                if !self.state.config_files.is_empty() && self.state.selected_config.is_none() {
-                    let selected = self.state.config_files[0].clone();
-                    self.state.selected_config = Some(selected);
-                }
-                Command::none()
-            }
-            Message::ConfigsLoaded(Err(e)) => {
-                self.state.error = Some(format!("Error loading configs: {e}"));
-                Command::none()
-            }
-            Message::ConfigSelected(config_path) => {
-                self.state.selected_config = Some(config_path.clone());
-                self.state.assignments = Vec::new();
-                self.state.people = Vec::new();
-                self.state.error = None;
-                Command::perform(
-                    utils::generate_schedule(config_path),
+            )
+        }
+        Message::GenerateSchedule => {
+            if let Some(config_path) = &app.state.selected_config {
+                Task::perform(
+                    utils::generate_schedule(config_path.clone()),
                     Message::ScheduleGenerated,
                 )
+            } else {
+                Task::none()
             }
-            Message::RefreshConfigList => {
-                // Only refresh the file list, don't generate a schedule
-                Command::perform(
-                    async { crate::gui::find_config_files().await },
-                    Message::ConfigsLoaded,
-                )
-            }
-            Message::GenerateSchedule => {
-                if let Some(config_path) = &self.state.selected_config {
-                    Command::perform(
-                        utils::generate_schedule(config_path.clone()),
-                        Message::ScheduleGenerated,
-                    )
-                } else {
-                    Command::none()
-                }
-            }
-            Message::ScheduleGenerated(Ok(assignments)) => {
-                // Store the assignments
-                self.state.assignments = assignments.clone();
-                self.state.selected_cell = None;
+        }
+        Message::ScheduleGenerated(Ok(assignments)) => {
+            // Store the assignments
+            app.state.assignments = assignments.clone();
+            app.state.selected_cell = None;
 
-                // Generate people states from the config
-                if let Some(config_path) = &self.state.selected_config
-                    && let Ok(config) = load_config(config_path)
-                {
-                    let mut people = crate::schedule::create_people(&config);
+            // Generate people states from the config
+            if let Some(config_path) = &app.state.selected_config
+                && let Ok(config) = load_config(config_path)
+            {
+                let mut people = crate::schedule::create_people(&config);
 
-                    for a in &self.state.assignments {
-                        if let Some(person) = people.iter_mut().find(|p| p.name() == a.person) {
-                            person.register_service(a.date, a.place.clone());
-                        }
+                for a in &app.state.assignments {
+                    if let Some(person) = people.iter_mut().find(|p| p.name() == a.person) {
+                        person.register_service(a.date, a.place.clone());
                     }
-
-                    self.state.people = people;
                 }
 
-                Command::none()
+                app.state.people = people;
             }
-            Message::ScheduleGenerated(Err(e)) => {
-                self.state.error = Some(format!("Error generating schedule: {e}"));
-                Command::none()
-            }
-            Message::SaveScheduleWithDate => {
-                if let Some(config_path) = self.state.selected_config.clone() {
-                    if !self.state.assignments.is_empty() {
-                        let filename = crate::gui::generate_filename(config_path);
-                        Command::perform(async { Message::SaveSchedule(filename) }, |msg| msg)
-                    } else {
-                        self.state.error = Some("No schedule to save".to_string());
-                        Command::none()
-                    }
+
+            Task::none()
+        }
+        Message::ScheduleGenerated(Err(e)) => {
+            app.state.error = Some(format!("Error generating schedule: {e}"));
+            Task::none()
+        }
+        Message::SaveScheduleWithDate => {
+            if let Some(config_path) = app.state.selected_config.clone() {
+                if !app.state.assignments.is_empty() {
+                    let filename = crate::gui::generate_filename(config_path);
+                    Task::perform(async { Message::SaveSchedule(filename) }, |msg| msg)
                 } else {
-                    Command::none()
+                    app.state.error = Some("No schedule to save".to_string());
+                    Task::none()
                 }
+            } else {
+                Task::none()
             }
+        }
 
-            Message::SaveSchedule(filename) => {
-                let csv_result = assignments_to_csv(&self.state.assignments);
-                self.handle_save_schedule(filename, csv_result)
-            }
-            Message::ScheduleSaved(Ok(())) => {
-                // Successfully saved - this is now handled directly in the SaveSchedule handler
-                Command::none()
-            }
+        Message::SaveSchedule(filename) => {
+            let csv_result = assignments_to_csv(&app.state.assignments);
+            app.handle_save_schedule(filename, csv_result)
+        }
+        Message::ScheduleSaved(Ok(())) => {
+            // Successfully saved - this is now handled directly in the SaveSchedule handler
+            Task::none()
+        }
 
-            Message::ShowSuccessMessage(message) => {
-                self.state.success_message = Some(message);
-                self.state.success_message_expires_at =
-                    Some(std::time::Instant::now() + std::time::Duration::from_secs(3));
+        Message::ShowSuccessMessage(message) => {
+            app.state.success_message = Some(message);
+            app.state.success_message_expires_at =
+                Some(std::time::Instant::now() + std::time::Duration::from_secs(3));
 
-                // Schedule a check after 3 seconds
-                Command::perform(wait_then_check_message_expiry(), identity_message)
-            }
+            // Schedule a check after 3 seconds
+            Task::perform(wait_then_check_message_expiry(), identity_message)
+        }
 
-            Message::CheckMessageExpiry => {
-                // Check if the success message has expired
-                if let Some(expires_at) = self.state.success_message_expires_at
-                    && std::time::Instant::now() >= expires_at
-                {
-                    self.state.success_message = None;
-                    self.state.success_message_expires_at = None;
-                }
-                Command::none()
+        Message::CheckMessageExpiry => {
+            // Check if the success message has expired
+            if let Some(expires_at) = app.state.success_message_expires_at
+                && std::time::Instant::now() >= expires_at
+            {
+                app.state.success_message = None;
+                app.state.success_message_expires_at = None;
             }
-            Message::ScheduleSaved(Err(e)) => {
-                self.state.error = Some(format!("Error saving schedule: {e}"));
-                Command::none()
+            Task::none()
+        }
+        Message::ScheduleSaved(Err(e)) => {
+            app.state.error = Some(format!("Error saving schedule: {e}"));
+            Task::none()
+        }
+        Message::TabSelected(tab) => {
+            app.state.active_tab = tab;
+            Task::none()
+        }
+        Message::SummaryPersonClicked(person) => {
+            app.state.toggle_highlighted_name(person);
+            Task::none()
+        }
+        Message::CellClicked(position) => app.state.handle_cell_click(position),
+        Message::CellRightClicked(position) => {
+            if let Some((_, _, person)) = app.state.get_cell_info(position) {
+                app.state.toggle_highlighted_name(person);
+            } else {
+                app.state.highlighted_names = [None, None, None, None];
             }
-            Message::TabSelected(tab) => {
-                self.state.active_tab = tab;
-                Command::none()
-            }
-            Message::SummaryPersonClicked(person) => {
-                self.state.toggle_highlighted_name(person);
-                Command::none()
-            }
-            Message::CellClicked(position) => self.state.handle_cell_click(position),
-            Message::CellRightClicked(position) => {
-                if let Some((_, _, person)) = self.state.get_cell_info(position) {
-                    self.state.toggle_highlighted_name(person);
-                } else {
-                    self.state.highlighted_names = [None, None, None, None];
-                }
-                Command::none()
-            }
-            Message::CellHovered(position) => {
-                self.state.hovered_cell = Some(position);
-                Command::none()
-            }
-            Message::MouseEntered(position) => {
-                self.state.hovered_cell = Some(position);
-                Command::none()
-            }
-            Message::MouseLeft => {
-                self.state.hovered_cell = None;
-                Command::none()
-            }
-            Message::Error(e) => {
-                self.state.error = Some(e);
-                Command::none()
-            }
+            Task::none()
+        }
+        Message::CellHovered(position) => {
+            app.state.hovered_cell = Some(position);
+            Task::none()
+        }
+        Message::MouseEntered(position) => {
+            app.state.hovered_cell = Some(position);
+            Task::none()
+        }
+        Message::MouseLeft => {
+            app.state.hovered_cell = None;
+            Task::none()
+        }
+        Message::Error(e) => {
+            app.state.error = Some(e);
+            Task::none()
         }
     }
+}
 
-    fn view(&self) -> Element<'_, Message> {
-        let title = text("Duty Roster").size(24);
+/// View the application state
+pub fn view(app: &DutyRosterApp) -> Element<'_, Message> {
+    let title = text("Duty Roster").size(24);
 
-        // Create config selector
-        let config_selector = super::config::create_config_selector(
-            &self.state.config_files,
-            &self.state.selected_config,
-            Message::ConfigSelected,
-            Message::RefreshConfigList,
+    // Create config selector
+    let config_selector = super::config::create_config_selector(
+        &app.state.config_files,
+        &app.state.selected_config,
+        Message::ConfigSelected,
+        Message::RefreshConfigList,
+    );
+
+    let generate_button =
+        button(text("Generate Schedule").size(14)).on_press(Message::GenerateSchedule);
+    let save_button = if !app.state.assignments.is_empty() {
+        button(text("Save").size(14)).on_press(Message::SaveScheduleWithDate)
+    } else {
+        button(text("Save").size(14)).style(button::secondary)
+    };
+
+    let mut content = column![title, config_selector, row![generate_button, save_button]]
+        .spacing(15)
+        .padding(15);
+
+    // Display error if any
+    if let Some(error) = &app.state.error {
+        content = content.push(
+            text(format!("Error: {error}"))
+                .size(12)
+                .color(iced::Color::from_rgb(0.8, 0.0, 0.0)),
         );
+    }
 
-        let generate_button =
-            button(text("Generate Schedule").size(14)).on_press(Message::GenerateSchedule);
-        let save_button = if !self.state.assignments.is_empty() {
-            button(text("Save").size(14)).on_press(Message::SaveScheduleWithDate)
-        } else {
-            button(text("Save").size(14)).style(iced::theme::Button::Secondary)
-        };
+    // Display success message if any
+    if let Some(message) = &app.state.success_message {
+        content = content.push(
+            text(message)
+                .size(12)
+                .color(iced::Color::from_rgb(0.0, 0.6, 0.0)),
+        );
+    }
 
-        let mut content = column![title, config_selector, row![generate_button, save_button]]
-            .spacing(15)
-            .padding(15);
-
-        // Display error if any
-        if let Some(error) = &self.state.error {
-            content = content.push(
-                text(format!("Error: {error}"))
-                    .size(12)
-                    .style(iced::Color::from_rgb(0.8, 0.0, 0.0)),
-            );
-        }
-
-        // Display success message if any
-        if let Some(message) = &self.state.success_message {
-            content = content.push(
-                text(message)
-                    .size(12)
-                    .style(iced::Color::from_rgb(0.0, 0.6, 0.0)),
-            );
-        }
-
-        // Add tabs if content is available
-        if !self.state.assignments.is_empty() || !self.state.people.is_empty() {
-            // Create tab row
-            let schedule_tab = button(
-                text("Schedule")
-                    .size(14)
-                    .horizontal_alignment(iced::alignment::Horizontal::Center),
-            )
-            .width(Length::FillPortion(1))
-            .style(if self.state.active_tab == Tab::Schedule {
-                iced::theme::Button::Primary
+    // Add tabs if content is available
+    if !app.state.assignments.is_empty() || !app.state.people.is_empty() {
+        // Create tab row
+        let schedule_tab = button(text("Schedule").size(14).center())
+            .width(FillPortion(1))
+            .style(if app.state.active_tab == Tab::Schedule {
+                button::primary
             } else {
-                iced::theme::Button::Secondary
+                button::secondary
             })
             .on_press(Message::TabSelected(Tab::Schedule));
 
-            let summary_tab = button(
-                text("Summary")
-                    .size(14)
-                    .horizontal_alignment(iced::alignment::Horizontal::Center),
-            )
-            .width(Length::FillPortion(1))
-            .style(if self.state.active_tab == Tab::Summary {
-                iced::theme::Button::Primary
+        let summary_tab = button(text("Summary").size(14).center())
+            .width(FillPortion(1))
+            .style(if app.state.active_tab == Tab::Summary {
+                button::primary
             } else {
-                iced::theme::Button::Secondary
+                button::secondary
             })
             .on_press(Message::TabSelected(Tab::Summary));
 
-            content = content.push(row![schedule_tab, summary_tab].spacing(5));
+        content = content.push(row![schedule_tab, summary_tab].spacing(5));
 
-            // Display content based on active tab
-            match self.state.active_tab {
-                Tab::Schedule => {
-                    if !self.state.assignments.is_empty() {
-                        let table_view = table::create_table_from_assignments(
-                            &self.state.assignments,
-                            self.state.selected_cell.as_ref(),
-                            self.state.hovered_cell.as_ref(),
-                            &self.state.highlighted_names,
-                        );
-                        content =
-                            content.push(scrollable(table_view).height(Length::FillPortion(3)));
-                    }
+        // Display content based on active tab
+        match app.state.active_tab {
+            Tab::Schedule => {
+                if !app.state.assignments.is_empty() {
+                    let table_view = table::create_table_from_assignments(
+                        &app.state.assignments,
+                        app.state.selected_cell.as_ref(),
+                        app.state.hovered_cell.as_ref(),
+                        &app.state.highlighted_names,
+                    );
+                    content = content.push(scrollable(table_view).height(FillPortion(3)));
                 }
-                Tab::Summary => {
-                    if !self.state.people.is_empty() {
-                        let summary_view = summary::create_summary_view_from_people(
-                            &self.state.people,
-                            &self.state.highlighted_names,
-                        );
-                        content =
-                            content.push(scrollable(summary_view).height(Length::FillPortion(3)));
-                    }
+            }
+            Tab::Summary => {
+                if !app.state.people.is_empty() {
+                    let summary_view = summary::create_summary_view_from_people(
+                        &app.state.people,
+                        &app.state.highlighted_names,
+                    );
+                    content = content.push(scrollable(summary_view).height(FillPortion(3)));
                 }
             }
         }
-
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .into()
     }
+
+    container(content)
+        .width(Fill)
+        .height(Fill)
+        .center_x(Fill)
+        .into()
 }
 
 impl DutyRosterApp {
@@ -356,7 +338,7 @@ impl DutyRosterApp {
         &mut self,
         filename: String,
         csv_result: Result<String, Box<dyn std::error::Error>>,
-    ) -> Command<Message> {
+    ) -> Task<Message> {
         match csv_result {
             Ok(csv_content) => {
                 // Create summary content directly from people states
@@ -377,14 +359,14 @@ impl DutyRosterApp {
                 }
 
                 let filename_for_message = filename.clone();
-                Command::perform(
+                Task::perform(
                     utils::save_file(filename, csv_content, summary_content),
                     move |result| map_save_file_result(filename_for_message, result),
                 )
             }
             Err(e) => {
                 self.state.error = Some(format!("Failed to create CSV: {e}"));
-                Command::none()
+                Task::none()
             }
         }
     }
@@ -412,12 +394,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_title() {
-        let app = create_test_app();
-        assert_eq!(app.title(), "Duty Roster".to_string());
-    }
-
     fn create_test_assignments() -> Vec<Assignment> {
         vec![
             Assignment {
@@ -434,8 +410,8 @@ mod tests {
     }
 
     #[test]
-    fn test_new() {
-        let (app, _command) = DutyRosterApp::new(());
+    fn test_boot() {
+        let (app, _task) = boot();
         assert_eq!(app.state.config_files.len(), 0);
         assert_eq!(app.state.selected_config, None);
     }
@@ -448,7 +424,7 @@ mod tests {
         let config_path = "test_config.toml".to_string();
         let message = Message::ConfigSelected(config_path.clone());
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         assert_eq!(app.state.selected_config, Some(config_path));
     }
@@ -460,7 +436,7 @@ mod tests {
         // Test selecting a tab
         let message = Message::TabSelected(Tab::Summary);
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         assert_eq!(app.state.active_tab, Tab::Summary);
     }
@@ -473,7 +449,7 @@ mod tests {
         let position = CellPosition { row: 1, column: 1 };
         let message = Message::CellClicked(position);
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         assert_eq!(app.state.selected_cell, Some(position));
     }
@@ -489,7 +465,7 @@ mod tests {
         let position = CellPosition { row: 1, column: 1 };
         let message = Message::CellHovered(position);
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         assert_eq!(app.state.hovered_cell, Some(position));
         assert_eq!(app.state.highlighted_names, [None, None, None, None]);
@@ -506,7 +482,7 @@ mod tests {
         // Test mouse leaving
         let message = Message::MouseLeft;
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         assert_eq!(app.state.hovered_cell, None);
         assert_eq!(app.state.highlighted_names[0], Some("Person1".to_string()));
@@ -519,10 +495,10 @@ mod tests {
 
         let position = CellPosition { row: 1, column: 1 };
 
-        let _cmd = app.update(Message::CellRightClicked(position));
+        let _cmd = update(&mut app,Message::CellRightClicked(position));
         assert_eq!(app.state.highlighted_names[0], Some("Person1".to_string()));
 
-        let _cmd = app.update(Message::CellRightClicked(position));
+        let _cmd = update(&mut app,Message::CellRightClicked(position));
         assert_eq!(app.state.highlighted_names, [None, None, None, None]);
     }
 
@@ -534,7 +510,7 @@ mod tests {
         let message_text = "Success!".to_string();
         let message = Message::ShowSuccessMessage(message_text.clone());
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         assert_eq!(app.state.success_message, Some(message_text));
         assert!(app.state.success_message_expires_at.is_some());
@@ -554,7 +530,7 @@ mod tests {
         // Test checking message expiry
         let message = Message::CheckMessageExpiry;
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         assert_eq!(app.state.success_message, None);
         assert_eq!(app.state.success_message_expires_at, None);
@@ -568,7 +544,7 @@ mod tests {
         let configs = vec!["config1.toml".to_string(), "config2.toml".to_string()];
         let message = Message::ConfigsLoaded(Ok(configs.clone()));
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         assert_eq!(app.state.config_files, configs);
     }
@@ -581,7 +557,7 @@ mod tests {
         let error_message = "Failed to load configs".to_string();
         let message = Message::ConfigsLoaded(Err(error_message.clone()));
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         // The app adds "Error loading configs: " prefix to the error message
         let expected_error = format!("Error loading configs: {}", error_message);
@@ -593,7 +569,7 @@ mod tests {
         let app = create_test_app();
 
         // Test the view function
-        let _element = app.view();
+        let _element = view(&app);
 
         // We can't easily test the actual UI rendering, but we can ensure the function runs without panicking
         assert_eq!(app.state.selected_config, None);
@@ -607,7 +583,7 @@ mod tests {
         let message = Message::RefreshConfigList;
 
         // This should return a Command
-        let cmd = app.update(message);
+        let cmd = update(&mut app,message);
 
         // We can't easily test the Command itself, but we can verify it's not Command::none()
         // Just ensure the test runs without panicking
@@ -622,7 +598,7 @@ mod tests {
         let message = Message::GenerateSchedule;
 
         // This should return Command::none()
-        let cmd = app.update(message);
+        let cmd = update(&mut app,message);
 
         // We can't easily test if it's Command::none(), so just ensure it runs without panicking
         let _ = cmd;
@@ -633,7 +609,7 @@ mod tests {
         let mut app = create_test_app();
         app.state.selected_config = Some("test_config.toml".to_string());
 
-        let cmd = app.update(Message::GenerateSchedule);
+        let cmd = update(&mut app,Message::GenerateSchedule);
         let _ = cmd;
     }
 
@@ -647,7 +623,7 @@ mod tests {
         // Test saving a schedule with date but no assignments
         let message = Message::SaveScheduleWithDate;
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         // Verify an error was set
         assert_eq!(app.state.error, Some("No schedule to save".to_string()));
@@ -665,7 +641,7 @@ mod tests {
         let message = Message::SaveScheduleWithDate;
 
         // This should return a Command
-        let cmd = app.update(message);
+        let cmd = update(&mut app,message);
 
         // We can't easily test the Command itself, just ensure it runs without panicking
         let _ = cmd;
@@ -679,7 +655,7 @@ mod tests {
         let message_text = "Success!".to_string();
         let message = Message::ShowSuccessMessage(message_text.clone());
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         // Verify the success message was set
         assert_eq!(app.state.success_message, Some(message_text));
@@ -694,7 +670,7 @@ mod tests {
         // Note: In the current implementation, this just returns Command::none()
         let message = Message::ScheduleSaved(Ok(()));
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         // No assertions needed as this just returns Command::none()
     }
@@ -717,7 +693,7 @@ mod tests {
         // Test handling a successful schedule generation
         let message = Message::ScheduleGenerated(Ok(assignments.clone()));
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         // Verify assignments were stored
         assert_eq!(app.state.assignments.len(), 1);
@@ -766,7 +742,7 @@ mod tests {
             person: "Person1".to_string(),
         }];
 
-        let _ = app.update(Message::ScheduleGenerated(Ok(assignments)));
+        let _ = update(&mut app,Message::ScheduleGenerated(Ok(assignments)));
         assert!(!app.state.people.is_empty());
     }
 
@@ -835,7 +811,7 @@ mod tests {
             }
         }
 
-        let _ = app.update(Message::ScheduleGenerated(Ok(assignments.clone())));
+        let _ = update(&mut app,Message::ScheduleGenerated(Ok(assignments.clone())));
 
         let mut expected: HashMap<(String, String), usize> = HashMap::new();
         for a in &assignments {
@@ -865,7 +841,7 @@ mod tests {
         let error_message = "Failed to save schedule".to_string();
         let message = Message::ScheduleSaved(Err(error_message.clone()));
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         // Verify the error was stored with the prefix
         assert_eq!(
@@ -882,7 +858,7 @@ mod tests {
         let error_message = "Failed to generate schedule".to_string();
         let message = Message::ScheduleGenerated(Err(error_message.clone()));
 
-        let _cmd = app.update(message);
+        let _cmd = update(&mut app,message);
 
         // Verify the error was stored with the prefix
         assert_eq!(
@@ -917,7 +893,7 @@ mod tests {
         let filename = "test_schedule.csv".to_string();
         let message = Message::SaveSchedule(filename.clone());
 
-        let cmd = app.update(message);
+        let cmd = update(&mut app,message);
 
         // Verify a command was returned (we can't easily test the actual command)
         // Just check that it's not empty by using a dummy variable
@@ -970,7 +946,7 @@ mod tests {
         app.state.highlighted_names[0] = Some("Someone".to_string());
 
         let pos = CellPosition { row: 1, column: 1 };
-        let _ = app.update(Message::MouseEntered(pos));
+        let _ = update(&mut app,Message::MouseEntered(pos));
         assert_eq!(app.state.highlighted_names[0], Some("Someone".to_string()));
     }
 
@@ -980,13 +956,13 @@ mod tests {
 
         assert_eq!(app.state.highlighted_names, [None, None, None, None]);
 
-        let _ = app.update(Message::SummaryPersonClicked("Alice".to_string()));
+        let _ = update(&mut app,Message::SummaryPersonClicked("Alice".to_string()));
         assert_eq!(
             app.state.highlighted_names,
             [Some("Alice".to_string()), None, None, None]
         );
 
-        let _ = app.update(Message::SummaryPersonClicked("Alice".to_string()));
+        let _ = update(&mut app,Message::SummaryPersonClicked("Alice".to_string()));
         assert_eq!(app.state.highlighted_names, [None, None, None, None]);
     }
 
@@ -996,11 +972,11 @@ mod tests {
 
         app.state.error = Some("err".to_string());
         app.state.success_message = Some("ok".to_string());
-        let _ = app.view();
+        let _ = view(&app);
 
         app.state.assignments = create_test_assignments();
         app.state.active_tab = Tab::Schedule;
-        let _ = app.view();
+        let _ = view(&app);
 
         let group_state = Rc::new(RefCell::new(GroupState::default()));
         let mut p = PersonState::new(
@@ -1012,6 +988,6 @@ mod tests {
 
         app.state.people = vec![p];
         app.state.active_tab = Tab::Summary;
-        let _ = app.view();
+        let _ = view(&app);
     }
 }

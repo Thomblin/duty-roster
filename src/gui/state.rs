@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use iced::Command;
+use iced::Task;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::schedule::{Assignment, PersonState};
@@ -62,17 +62,17 @@ impl AppState {
     }
 
     /// Handle a cell click
-    pub fn handle_cell_click(&mut self, position: CellPosition) -> Command<Message> {
+    pub fn handle_cell_click(&mut self, position: CellPosition) -> Task<Message> {
         // Don't allow selecting header row
         if position.row == 0 {
-            return Command::none();
+            return Task::none();
         }
 
         if let Some(prev_selected) = self.selected_cell.take() {
             // Second cell clicked - attempt to swap
             if prev_selected == position {
                 // Clicked same cell twice - deselect
-                Command::none()
+                Task::none()
             } else if position.row > 0 && prev_selected.row > 0 {
                 // Get cell information
                 let cell1_info = self.get_cell_info(prev_selected);
@@ -94,14 +94,14 @@ impl AppState {
                     );
                 }
 
-                Command::none()
+                Task::none()
             } else {
-                Command::none()
+                Task::none()
             }
         } else {
             // First cell clicked - select it
             self.selected_cell = Some(position);
-            Command::none()
+            Task::none()
         }
     }
 

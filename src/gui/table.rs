@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use iced::widget::{button, column, container, mouse_area, row, text};
-use iced::{Element, Length, Theme};
+use iced::{Element, Fill, Theme};
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{CellPosition, Message};
@@ -14,106 +14,58 @@ pub struct TableState {
     places: BTreeSet<String>,
 }
 
-pub struct HighlightedCellButtonStyleYellow;
-
-impl button::StyleSheet for HighlightedCellButtonStyleYellow {
-    type Style = Theme;
-
-    fn active(&self, _style: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            background: Some(iced::Color::from_rgb(1.0, 1.0, 0.8).into()),
+// Helper to create a colored button style with active/hovered backgrounds
+fn colored_button_style(
+    active_color: iced::Color,
+    hovered_color: iced::Color,
+) -> impl Fn(&Theme, button::Status) -> button::Style {
+    move |_theme, status| {
+        let bg = match status {
+            button::Status::Hovered => hovered_color,
+            _ => active_color,
+        };
+        button::Style {
+            background: Some(bg.into()),
             text_color: iced::Color::BLACK,
             border: iced::Border {
                 radius: 2.0.into(),
                 width: 0.0,
                 color: iced::Color::TRANSPARENT,
             },
-            shadow_offset: iced::Vector::default(),
-            ..Default::default()
-        }
-    }
-
-    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            background: Some(iced::Color::from_rgb(1.0, 1.0, 0.7).into()),
-            text_color: iced::Color::BLACK,
-            border: iced::Border {
-                radius: 2.0.into(),
-                width: 0.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            shadow_offset: iced::Vector::default(),
             ..Default::default()
         }
     }
 }
 
-pub struct HighlightedCellButtonStyleGreen;
-
-impl button::StyleSheet for HighlightedCellButtonStyleGreen {
-    type Style = Theme;
-
-    fn active(&self, _style: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            background: Some(iced::Color::from_rgb(0.8, 1.0, 0.8).into()),
-            text_color: iced::Color::BLACK,
-            border: iced::Border {
-                radius: 2.0.into(),
-                width: 0.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            shadow_offset: iced::Vector::default(),
-            ..Default::default()
-        }
-    }
-
-    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            background: Some(iced::Color::from_rgb(0.75, 0.95, 0.75).into()),
-            text_color: iced::Color::BLACK,
-            border: iced::Border {
-                radius: 2.0.into(),
-                width: 0.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            shadow_offset: iced::Vector::default(),
-            ..Default::default()
-        }
-    }
+// Style functions for button highlights
+pub fn highlighted_cell_button_style_yellow(
+    _theme: &Theme,
+    status: button::Status,
+) -> button::Style {
+    colored_button_style(
+        iced::Color::from_rgb(1.0, 1.0, 0.8),
+        iced::Color::from_rgb(1.0, 1.0, 0.7),
+    )(_theme, status)
 }
 
-pub struct HighlightedCellButtonStyleBlue;
+pub fn highlighted_cell_button_style_green(
+    _theme: &Theme,
+    status: button::Status,
+) -> button::Style {
+    colored_button_style(
+        iced::Color::from_rgb(0.8, 1.0, 0.8),
+        iced::Color::from_rgb(0.75, 0.95, 0.75),
+    )(_theme, status)
+}
 
-impl button::StyleSheet for HighlightedCellButtonStyleBlue {
-    type Style = Theme;
-
-    fn active(&self, _style: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            background: Some(iced::Color::from_rgb(0.8, 0.9, 1.0).into()),
-            text_color: iced::Color::BLACK,
-            border: iced::Border {
-                radius: 2.0.into(),
-                width: 0.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            shadow_offset: iced::Vector::default(),
-            ..Default::default()
-        }
-    }
-
-    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            background: Some(iced::Color::from_rgb(0.75, 0.85, 0.95).into()),
-            text_color: iced::Color::BLACK,
-            border: iced::Border {
-                radius: 2.0.into(),
-                width: 0.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            shadow_offset: iced::Vector::default(),
-            ..Default::default()
-        }
-    }
+pub fn highlighted_cell_button_style_blue(
+    _theme: &Theme,
+    status: button::Status,
+) -> button::Style {
+    colored_button_style(
+        iced::Color::from_rgb(0.8, 0.9, 1.0),
+        iced::Color::from_rgb(0.75, 0.85, 0.95),
+    )(_theme, status)
 }
 
 impl TableState {
@@ -235,26 +187,22 @@ pub fn create_table_from_assignments<'a>(
     header_row = header_row.push(
         container(text("date").size(12))
             .padding(3)
-            .width(Length::Fill)
-            .style(iced::theme::Container::Custom(Box::new(HeaderStyle))),
+            .width(Fill)
+            .style(header_style),
     );
 
     // Add place column headers
     for place in &places {
         header_row = header_row.push(
-            container(text(place).size(12))
+            container(text(place.clone()).size(12))
                 .padding(3)
-                .width(Length::Fill)
-                .style(iced::theme::Container::Custom(Box::new(HeaderStyle))),
+                .width(Fill)
+                .style(header_style),
         );
     }
 
     // Add the header row
-    rows.push(
-        container(header_row)
-            .style(iced::theme::Container::Custom(Box::new(HeaderRowStyle)))
-            .into(),
-    );
+    rows.push(container(header_row).style(header_style).into());
 
     // Create data rows
     for (row_idx, (date, assignments_for_date)) in data.iter().enumerate() {
@@ -263,10 +211,10 @@ pub fn create_table_from_assignments<'a>(
         // Add date column
         let date_str: String = date.to_string();
         row_content = row_content.push(
-            container(text(&date_str).size(12))
+            container(text(date_str).size(12))
                 .padding(3)
-                .width(Length::Fill)
-                .style(iced::theme::Container::Custom(Box::new(HeaderStyle))),
+                .width(Fill)
+                .style(header_style),
         );
 
         // Add person cells for each place
@@ -296,25 +244,32 @@ pub fn create_table_from_assignments<'a>(
                     .position(|p| p.as_deref() == Some(person.as_str()))
             };
 
-            // Create clickable cell
-            let btn_style = if is_selected {
-                iced::theme::Button::Primary
+            // Create clickable cell with appropriate style
+            let cell_btn = if is_selected {
+                button(text(person.clone()).size(12))
+                    .width(Fill)
+                    .padding(3)
+                    .on_press(Message::CellClicked(cell_position))
+                    .style(button::primary)
             } else if let Some(slot) = highlight_slot {
-                match slot {
-                    0 => iced::theme::Button::Custom(Box::new(HighlightedCellButtonStyle)),
-                    1 => iced::theme::Button::Custom(Box::new(HighlightedCellButtonStyleYellow)),
-                    2 => iced::theme::Button::Custom(Box::new(HighlightedCellButtonStyleGreen)),
-                    _ => iced::theme::Button::Custom(Box::new(HighlightedCellButtonStyleBlue)),
-                }
+                button(text(person.clone()).size(12))
+                    .width(Fill)
+                    .padding(3)
+                    .on_press(Message::CellClicked(cell_position))
+                    .style(match slot {
+                        0 => highlighted_cell_button_style_gray
+                            as fn(&Theme, button::Status) -> button::Style,
+                        1 => highlighted_cell_button_style_yellow,
+                        2 => highlighted_cell_button_style_green,
+                        _ => highlighted_cell_button_style_blue,
+                    })
             } else {
-                iced::theme::Button::Custom(Box::new(CellButtonStyle))
+                button(text(person.clone()).size(12))
+                    .width(Fill)
+                    .padding(3)
+                    .on_press(Message::CellClicked(cell_position))
+                    .style(cell_button_style)
             };
-
-            let cell_btn = button(text(&person).size(12))
-                .width(Length::Fill)
-                .padding(3)
-                .on_press(Message::CellClicked(cell_position))
-                .style(btn_style);
 
             // Wrap in mouse_area to detect hover events
             let cell_with_hover = mouse_area(cell_btn)
@@ -332,102 +287,31 @@ pub fn create_table_from_assignments<'a>(
     column(rows).spacing(1).into()
 }
 
-// Custom style for header cells
-pub struct HeaderStyle;
-
-impl container::StyleSheet for HeaderStyle {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Color::from_rgb(0.9, 0.9, 0.9).into()),
-            ..Default::default()
-        }
+// Style function for header containers
+pub fn header_style(_theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(iced::Color::from_rgb(0.9, 0.9, 0.9).into()),
+        ..Default::default()
     }
 }
 
-// Custom style for header row
-pub struct HeaderRowStyle;
-
-impl container::StyleSheet for HeaderRowStyle {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Color::from_rgb(0.9, 0.9, 0.9).into()),
-            ..Default::default()
-        }
-    }
+// Style function for cell buttons (transparent bg, gray on hover)
+pub fn cell_button_style(_theme: &Theme, status: button::Status) -> button::Style {
+    colored_button_style(
+        iced::Color::TRANSPARENT,
+        iced::Color::from_rgb(0.9, 0.9, 0.9),
+    )(_theme, status)
 }
 
-// Custom style for cells
-pub struct CellButtonStyle;
-
-impl button::StyleSheet for CellButtonStyle {
-    type Style = Theme;
-
-    fn active(&self, _style: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            background: Some(iced::Color::TRANSPARENT.into()),
-            text_color: iced::Color::BLACK,
-            border: iced::Border {
-                radius: 2.0.into(),
-                width: 0.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            shadow_offset: iced::Vector::default(),
-            ..Default::default()
-        }
-    }
-
-    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            background: Some(iced::Color::from_rgb(0.9, 0.9, 0.9).into()),
-            text_color: iced::Color::BLACK,
-            border: iced::Border {
-                radius: 2.0.into(),
-                width: 0.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            shadow_offset: iced::Vector::default(),
-            ..Default::default()
-        }
-    }
-}
-
-// Custom style for highlighted cells (light gray)
-pub struct HighlightedCellButtonStyle;
-
-impl button::StyleSheet for HighlightedCellButtonStyle {
-    type Style = Theme;
-
-    fn active(&self, _style: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            background: Some(iced::Color::from_rgb(0.85, 0.85, 0.85).into()),
-            text_color: iced::Color::BLACK,
-            border: iced::Border {
-                radius: 2.0.into(),
-                width: 0.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            shadow_offset: iced::Vector::default(),
-            ..Default::default()
-        }
-    }
-
-    fn hovered(&self, _style: &Self::Style) -> button::Appearance {
-        button::Appearance {
-            background: Some(iced::Color::from_rgb(0.8, 0.8, 0.8).into()),
-            text_color: iced::Color::BLACK,
-            border: iced::Border {
-                radius: 2.0.into(),
-                width: 0.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            shadow_offset: iced::Vector::default(),
-            ..Default::default()
-        }
-    }
+// Style function for highlighted cells (light gray)
+pub fn highlighted_cell_button_style_gray(
+    _theme: &Theme,
+    status: button::Status,
+) -> button::Style {
+    colored_button_style(
+        iced::Color::from_rgb(0.85, 0.85, 0.85),
+        iced::Color::from_rgb(0.8, 0.8, 0.8),
+    )(_theme, status)
 }
 
 #[cfg(test)]
@@ -456,49 +340,30 @@ mod tests {
 
     #[test]
     fn test_table_styles() {
-        let theme = Theme::default();
+        let theme = Theme::Light;
 
-        let header = <HeaderStyle as container::StyleSheet>::appearance(&HeaderStyle, &theme);
+        let header = header_style(&theme);
         assert!(header.background.is_some());
 
-        let header_row =
-            <HeaderRowStyle as container::StyleSheet>::appearance(&HeaderRowStyle, &theme);
-        assert!(header_row.background.is_some());
-
-        let active = <CellButtonStyle as button::StyleSheet>::active(&CellButtonStyle, &theme);
+        let active = cell_button_style(&theme, button::Status::Active);
         assert!(active.background.is_some());
 
-        let hovered = <CellButtonStyle as button::StyleSheet>::hovered(&CellButtonStyle, &theme);
+        let hovered = cell_button_style(&theme, button::Status::Hovered);
         assert!(hovered.background.is_some());
 
-        let active_hl = <HighlightedCellButtonStyle as button::StyleSheet>::active(
-            &HighlightedCellButtonStyle,
-            &theme,
-        );
+        let active_hl = highlighted_cell_button_style_gray(&theme, button::Status::Active);
         assert!(active_hl.background.is_some());
 
-        let hovered_hl = <HighlightedCellButtonStyle as button::StyleSheet>::hovered(
-            &HighlightedCellButtonStyle,
-            &theme,
-        );
+        let hovered_hl = highlighted_cell_button_style_gray(&theme, button::Status::Hovered);
         assert!(hovered_hl.background.is_some());
 
-        let active_y = <HighlightedCellButtonStyleYellow as button::StyleSheet>::active(
-            &HighlightedCellButtonStyleYellow,
-            &theme,
-        );
+        let active_y = highlighted_cell_button_style_yellow(&theme, button::Status::Active);
         assert!(active_y.background.is_some());
 
-        let active_g = <HighlightedCellButtonStyleGreen as button::StyleSheet>::active(
-            &HighlightedCellButtonStyleGreen,
-            &theme,
-        );
+        let active_g = highlighted_cell_button_style_green(&theme, button::Status::Active);
         assert!(active_g.background.is_some());
 
-        let active_b = <HighlightedCellButtonStyleBlue as button::StyleSheet>::active(
-            &HighlightedCellButtonStyleBlue,
-            &theme,
-        );
+        let active_b = highlighted_cell_button_style_blue(&theme, button::Status::Active);
         assert!(active_b.background.is_some());
     }
 

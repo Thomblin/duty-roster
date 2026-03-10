@@ -1,6 +1,6 @@
 use chrono::Local;
 use iced::widget::{button, pick_list, row, text};
-use iced::{Element, Length};
+use iced::{Element, Fill};
 use std::fs;
 use std::path::Path;
 
@@ -80,13 +80,13 @@ where
         row![text("No config files found").size(14), refresh_button].into()
     } else {
         row![
-            text("Select config file:").size(14).width(Length::Fill),
+            text("Select config file:").size(14).width(Fill),
             pick_list(
                 config_files.to_vec(),
                 selected_config.clone(),
                 on_config_selected
             )
-            .width(Length::Fill),
+            .width(Fill),
             refresh_button
         ]
         .into()

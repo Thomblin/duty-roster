@@ -1,84 +1,49 @@
 use iced::widget::{column, container, mouse_area, row, text};
-use iced::{Element, Length, Theme};
+use iced::{Element, FillPortion, Theme};
 
 use super::Message;
 use crate::schedule::PersonState;
 
-pub struct SummaryHeaderStyle;
-
-impl container::StyleSheet for SummaryHeaderStyle {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Color::from_rgb(0.9, 0.9, 0.9).into()),
-            ..Default::default()
-        }
+// Container style functions
+pub fn summary_header_style(_theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(iced::Color::from_rgb(0.9, 0.9, 0.9).into()),
+        ..Default::default()
     }
 }
 
-pub struct SummaryColumnHeaderStyle;
-
-impl container::StyleSheet for SummaryColumnHeaderStyle {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Color::from_rgb(0.95, 0.95, 0.95).into()),
-            ..Default::default()
-        }
+pub fn summary_column_header_style(_theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(iced::Color::from_rgb(0.95, 0.95, 0.95).into()),
+        ..Default::default()
     }
 }
 
-pub struct SummaryPersonHighlightStyle;
-
-impl container::StyleSheet for SummaryPersonHighlightStyle {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Color::from_rgb(0.85, 0.85, 0.85).into()),
-            ..Default::default()
-        }
+pub fn summary_person_highlight_style(_theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(iced::Color::from_rgb(0.85, 0.85, 0.85).into()),
+        ..Default::default()
     }
 }
 
-pub struct SummaryPersonHighlightStyleYellow;
-
-impl container::StyleSheet for SummaryPersonHighlightStyleYellow {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Color::from_rgb(1.0, 1.0, 0.8).into()),
-            ..Default::default()
-        }
+pub fn summary_person_highlight_style_yellow(_theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(iced::Color::from_rgb(1.0, 1.0, 0.8).into()),
+        ..Default::default()
     }
 }
 
-pub struct SummaryPersonHighlightStyleGreen;
-
-impl container::StyleSheet for SummaryPersonHighlightStyleGreen {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Color::from_rgb(0.8, 1.0, 0.8).into()),
-            ..Default::default()
-        }
+pub fn summary_person_highlight_style_green(_theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(iced::Color::from_rgb(0.8, 1.0, 0.8).into()),
+        ..Default::default()
     }
 }
 
-pub struct SummaryPersonHighlightStyleBlue;
-
-impl container::StyleSheet for SummaryPersonHighlightStyleBlue {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Color::from_rgb(0.8, 0.9, 1.0).into()),
-            ..Default::default()
-        }
+pub fn summary_person_highlight_style_blue(_theme: &Theme) -> container::Style {
+    container::Style {
+        background: Some(iced::Color::from_rgb(0.8, 0.9, 1.0).into()),
+        ..Default::default()
     }
 }
 
@@ -102,25 +67,21 @@ pub fn create_summary_view_from_people<'a>(
     rows.push(
         container(text("Summary Information").size(14))
             .padding(3)
-            .style(iced::theme::Container::Custom(Box::new(SummaryHeaderStyle)))
+            .style(summary_header_style)
             .into(),
     );
 
     // Column headers
     rows.push(
         container(row![
-            text("Person").size(12).width(Length::FillPortion(2)),
-            text("Total").size(12).width(Length::FillPortion(1)),
-            text("Weekday Stats").size(12).width(Length::FillPortion(3)),
-            text("Place Counts").size(12).width(Length::FillPortion(3)),
-            text("Different Place")
-                .size(12)
-                .width(Length::FillPortion(1))
+            text("Person").size(12).width(FillPortion(2)),
+            text("Total").size(12).width(FillPortion(1)),
+            text("Weekday Stats").size(12).width(FillPortion(3)),
+            text("Place Counts").size(12).width(FillPortion(3)),
+            text("Different Place").size(12).width(FillPortion(1))
         ])
         .padding(3)
-        .style(iced::theme::Container::Custom(Box::new(
-            SummaryColumnHeaderStyle,
-        )))
+        .style(summary_column_header_style)
         .into(),
     );
 
@@ -150,35 +111,27 @@ pub fn create_summary_view_from_people<'a>(
         let highlight_slot = highlight_slot_for_person(highlighted_names, person.name().as_str());
 
         let row_container = container(row![
-            text(person_name).size(12).width(Length::FillPortion(2)),
-            text(total).size(12).width(Length::FillPortion(1)),
-            text(weekday_stats).size(12).width(Length::FillPortion(2)),
-            text(place_stats).size(12).width(Length::FillPortion(3)),
-            text(different_place).size(12).width(Length::FillPortion(1))
+            text(person_name).size(12).width(FillPortion(2)),
+            text(total).size(12).width(FillPortion(1)),
+            text(weekday_stats).size(12).width(FillPortion(2)),
+            text(place_stats).size(12).width(FillPortion(3)),
+            text(different_place).size(12).width(FillPortion(1))
         ])
         .padding(3);
 
         rows.push(match highlight_slot {
-            Some(0) => mouse_area(row_container.style(iced::theme::Container::Custom(Box::new(
-                SummaryPersonHighlightStyle,
-            ))))
-            .on_press(Message::SummaryPersonClicked(person_key.clone()))
-            .into(),
-            Some(1) => mouse_area(row_container.style(iced::theme::Container::Custom(Box::new(
-                SummaryPersonHighlightStyleYellow,
-            ))))
-            .on_press(Message::SummaryPersonClicked(person_key.clone()))
-            .into(),
-            Some(2) => mouse_area(row_container.style(iced::theme::Container::Custom(Box::new(
-                SummaryPersonHighlightStyleGreen,
-            ))))
-            .on_press(Message::SummaryPersonClicked(person_key.clone()))
-            .into(),
-            Some(_) => mouse_area(row_container.style(iced::theme::Container::Custom(Box::new(
-                SummaryPersonHighlightStyleBlue,
-            ))))
-            .on_press(Message::SummaryPersonClicked(person_key.clone()))
-            .into(),
+            Some(0) => mouse_area(row_container.style(summary_person_highlight_style))
+                .on_press(Message::SummaryPersonClicked(person_key.clone()))
+                .into(),
+            Some(1) => mouse_area(row_container.style(summary_person_highlight_style_yellow))
+                .on_press(Message::SummaryPersonClicked(person_key.clone()))
+                .into(),
+            Some(2) => mouse_area(row_container.style(summary_person_highlight_style_green))
+                .on_press(Message::SummaryPersonClicked(person_key.clone()))
+                .into(),
+            Some(_) => mouse_area(row_container.style(summary_person_highlight_style_blue))
+                .on_press(Message::SummaryPersonClicked(person_key.clone()))
+                .into(),
             None => mouse_area(row_container)
                 .on_press(Message::SummaryPersonClicked(person_key.clone()))
                 .into(),
@@ -229,48 +182,32 @@ mod tests {
 
     #[test]
     fn test_summary_styles() {
-        let theme = Theme::default();
-        let header =
-            <SummaryHeaderStyle as container::StyleSheet>::appearance(&SummaryHeaderStyle, &theme);
+        let theme = Theme::Light;
+        let header = summary_header_style(&theme);
         assert!(header.background.is_some());
 
-        let col_header = <SummaryColumnHeaderStyle as container::StyleSheet>::appearance(
-            &SummaryColumnHeaderStyle,
-            &theme,
-        );
+        let col_header = summary_column_header_style(&theme);
         assert!(col_header.background.is_some());
 
-        let gray = <SummaryPersonHighlightStyle as container::StyleSheet>::appearance(
-            &SummaryPersonHighlightStyle,
-            &theme,
-        );
+        let gray = summary_person_highlight_style(&theme);
         assert_eq!(
             gray.background,
             Some(Background::Color(iced::Color::from_rgb(0.85, 0.85, 0.85)))
         );
 
-        let yellow = <SummaryPersonHighlightStyleYellow as container::StyleSheet>::appearance(
-            &SummaryPersonHighlightStyleYellow,
-            &theme,
-        );
+        let yellow = summary_person_highlight_style_yellow(&theme);
         assert_eq!(
             yellow.background,
             Some(Background::Color(iced::Color::from_rgb(1.0, 1.0, 0.8)))
         );
 
-        let green = <SummaryPersonHighlightStyleGreen as container::StyleSheet>::appearance(
-            &SummaryPersonHighlightStyleGreen,
-            &theme,
-        );
+        let green = summary_person_highlight_style_green(&theme);
         assert_eq!(
             green.background,
             Some(Background::Color(iced::Color::from_rgb(0.8, 1.0, 0.8)))
         );
 
-        let blue = <SummaryPersonHighlightStyleBlue as container::StyleSheet>::appearance(
-            &SummaryPersonHighlightStyleBlue,
-            &theme,
-        );
+        let blue = summary_person_highlight_style_blue(&theme);
         assert_eq!(
             blue.background,
             Some(Background::Color(iced::Color::from_rgb(0.8, 0.9, 1.0)))
