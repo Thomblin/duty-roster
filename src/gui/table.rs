@@ -58,10 +58,7 @@ pub fn highlighted_cell_button_style_green(
     )(_theme, status)
 }
 
-pub fn highlighted_cell_button_style_blue(
-    _theme: &Theme,
-    status: button::Status,
-) -> button::Style {
+pub fn highlighted_cell_button_style_blue(_theme: &Theme, status: button::Status) -> button::Style {
     colored_button_style(
         iced::Color::from_rgb(0.8, 0.9, 1.0),
         iced::Color::from_rgb(0.75, 0.85, 0.95),
@@ -257,8 +254,10 @@ pub fn create_table_from_assignments<'a>(
                     .padding(3)
                     .on_press(Message::CellClicked(cell_position))
                     .style(match slot {
-                        0 => highlighted_cell_button_style_gray
-                            as fn(&Theme, button::Status) -> button::Style,
+                        0 => {
+                            highlighted_cell_button_style_gray
+                                as fn(&Theme, button::Status) -> button::Style
+                        }
                         1 => highlighted_cell_button_style_yellow,
                         2 => highlighted_cell_button_style_green,
                         _ => highlighted_cell_button_style_blue,
@@ -304,10 +303,7 @@ pub fn cell_button_style(_theme: &Theme, status: button::Status) -> button::Styl
 }
 
 // Style function for highlighted cells (light gray)
-pub fn highlighted_cell_button_style_gray(
-    _theme: &Theme,
-    status: button::Status,
-) -> button::Style {
+pub fn highlighted_cell_button_style_gray(_theme: &Theme, status: button::Status) -> button::Style {
     colored_button_style(
         iced::Color::from_rgb(0.85, 0.85, 0.85),
         iced::Color::from_rgb(0.8, 0.8, 0.8),

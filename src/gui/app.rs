@@ -424,7 +424,7 @@ mod tests {
         let config_path = "test_config.toml".to_string();
         let message = Message::ConfigSelected(config_path.clone());
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         assert_eq!(app.state.selected_config, Some(config_path));
     }
@@ -436,7 +436,7 @@ mod tests {
         // Test selecting a tab
         let message = Message::TabSelected(Tab::Summary);
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         assert_eq!(app.state.active_tab, Tab::Summary);
     }
@@ -449,7 +449,7 @@ mod tests {
         let position = CellPosition { row: 1, column: 1 };
         let message = Message::CellClicked(position);
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         assert_eq!(app.state.selected_cell, Some(position));
     }
@@ -465,7 +465,7 @@ mod tests {
         let position = CellPosition { row: 1, column: 1 };
         let message = Message::CellHovered(position);
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         assert_eq!(app.state.hovered_cell, Some(position));
         assert_eq!(app.state.highlighted_names, [None, None, None, None]);
@@ -482,7 +482,7 @@ mod tests {
         // Test mouse leaving
         let message = Message::MouseLeft;
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         assert_eq!(app.state.hovered_cell, None);
         assert_eq!(app.state.highlighted_names[0], Some("Person1".to_string()));
@@ -495,10 +495,10 @@ mod tests {
 
         let position = CellPosition { row: 1, column: 1 };
 
-        let _cmd = update(&mut app,Message::CellRightClicked(position));
+        let _cmd = update(&mut app, Message::CellRightClicked(position));
         assert_eq!(app.state.highlighted_names[0], Some("Person1".to_string()));
 
-        let _cmd = update(&mut app,Message::CellRightClicked(position));
+        let _cmd = update(&mut app, Message::CellRightClicked(position));
         assert_eq!(app.state.highlighted_names, [None, None, None, None]);
     }
 
@@ -510,7 +510,7 @@ mod tests {
         let message_text = "Success!".to_string();
         let message = Message::ShowSuccessMessage(message_text.clone());
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         assert_eq!(app.state.success_message, Some(message_text));
         assert!(app.state.success_message_expires_at.is_some());
@@ -530,7 +530,7 @@ mod tests {
         // Test checking message expiry
         let message = Message::CheckMessageExpiry;
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         assert_eq!(app.state.success_message, None);
         assert_eq!(app.state.success_message_expires_at, None);
@@ -544,7 +544,7 @@ mod tests {
         let configs = vec!["config1.toml".to_string(), "config2.toml".to_string()];
         let message = Message::ConfigsLoaded(Ok(configs.clone()));
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         assert_eq!(app.state.config_files, configs);
     }
@@ -557,7 +557,7 @@ mod tests {
         let error_message = "Failed to load configs".to_string();
         let message = Message::ConfigsLoaded(Err(error_message.clone()));
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         // The app adds "Error loading configs: " prefix to the error message
         let expected_error = format!("Error loading configs: {}", error_message);
@@ -583,7 +583,7 @@ mod tests {
         let message = Message::RefreshConfigList;
 
         // This should return a Command
-        let cmd = update(&mut app,message);
+        let cmd = update(&mut app, message);
 
         // We can't easily test the Command itself, but we can verify it's not Command::none()
         // Just ensure the test runs without panicking
@@ -598,7 +598,7 @@ mod tests {
         let message = Message::GenerateSchedule;
 
         // This should return Command::none()
-        let cmd = update(&mut app,message);
+        let cmd = update(&mut app, message);
 
         // We can't easily test if it's Command::none(), so just ensure it runs without panicking
         let _ = cmd;
@@ -609,7 +609,7 @@ mod tests {
         let mut app = create_test_app();
         app.state.selected_config = Some("test_config.toml".to_string());
 
-        let cmd = update(&mut app,Message::GenerateSchedule);
+        let cmd = update(&mut app, Message::GenerateSchedule);
         let _ = cmd;
     }
 
@@ -623,7 +623,7 @@ mod tests {
         // Test saving a schedule with date but no assignments
         let message = Message::SaveScheduleWithDate;
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         // Verify an error was set
         assert_eq!(app.state.error, Some("No schedule to save".to_string()));
@@ -641,7 +641,7 @@ mod tests {
         let message = Message::SaveScheduleWithDate;
 
         // This should return a Command
-        let cmd = update(&mut app,message);
+        let cmd = update(&mut app, message);
 
         // We can't easily test the Command itself, just ensure it runs without panicking
         let _ = cmd;
@@ -655,7 +655,7 @@ mod tests {
         let message_text = "Success!".to_string();
         let message = Message::ShowSuccessMessage(message_text.clone());
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         // Verify the success message was set
         assert_eq!(app.state.success_message, Some(message_text));
@@ -670,7 +670,7 @@ mod tests {
         // Note: In the current implementation, this just returns Command::none()
         let message = Message::ScheduleSaved(Ok(()));
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         // No assertions needed as this just returns Command::none()
     }
@@ -693,7 +693,7 @@ mod tests {
         // Test handling a successful schedule generation
         let message = Message::ScheduleGenerated(Ok(assignments.clone()));
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         // Verify assignments were stored
         assert_eq!(app.state.assignments.len(), 1);
@@ -742,7 +742,7 @@ mod tests {
             person: "Person1".to_string(),
         }];
 
-        let _ = update(&mut app,Message::ScheduleGenerated(Ok(assignments)));
+        let _ = update(&mut app, Message::ScheduleGenerated(Ok(assignments)));
         assert!(!app.state.people.is_empty());
     }
 
@@ -811,7 +811,10 @@ mod tests {
             }
         }
 
-        let _ = update(&mut app,Message::ScheduleGenerated(Ok(assignments.clone())));
+        let _ = update(
+            &mut app,
+            Message::ScheduleGenerated(Ok(assignments.clone())),
+        );
 
         let mut expected: HashMap<(String, String), usize> = HashMap::new();
         for a in &assignments {
@@ -841,7 +844,7 @@ mod tests {
         let error_message = "Failed to save schedule".to_string();
         let message = Message::ScheduleSaved(Err(error_message.clone()));
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         // Verify the error was stored with the prefix
         assert_eq!(
@@ -858,7 +861,7 @@ mod tests {
         let error_message = "Failed to generate schedule".to_string();
         let message = Message::ScheduleGenerated(Err(error_message.clone()));
 
-        let _cmd = update(&mut app,message);
+        let _cmd = update(&mut app, message);
 
         // Verify the error was stored with the prefix
         assert_eq!(
@@ -893,7 +896,7 @@ mod tests {
         let filename = "test_schedule.csv".to_string();
         let message = Message::SaveSchedule(filename.clone());
 
-        let cmd = update(&mut app,message);
+        let cmd = update(&mut app, message);
 
         // Verify a command was returned (we can't easily test the actual command)
         // Just check that it's not empty by using a dummy variable
@@ -946,7 +949,7 @@ mod tests {
         app.state.highlighted_names[0] = Some("Someone".to_string());
 
         let pos = CellPosition { row: 1, column: 1 };
-        let _ = update(&mut app,Message::MouseEntered(pos));
+        let _ = update(&mut app, Message::MouseEntered(pos));
         assert_eq!(app.state.highlighted_names[0], Some("Someone".to_string()));
     }
 
@@ -956,13 +959,13 @@ mod tests {
 
         assert_eq!(app.state.highlighted_names, [None, None, None, None]);
 
-        let _ = update(&mut app,Message::SummaryPersonClicked("Alice".to_string()));
+        let _ = update(&mut app, Message::SummaryPersonClicked("Alice".to_string()));
         assert_eq!(
             app.state.highlighted_names,
             [Some("Alice".to_string()), None, None, None]
         );
 
-        let _ = update(&mut app,Message::SummaryPersonClicked("Alice".to_string()));
+        let _ = update(&mut app, Message::SummaryPersonClicked("Alice".to_string()));
         assert_eq!(app.state.highlighted_names, [None, None, None, None]);
     }
 

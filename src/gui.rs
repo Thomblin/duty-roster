@@ -62,5 +62,4 @@ mod tests_run {
         // Just assert true to have a passing test
         assert!(true);
     }
-
 }
