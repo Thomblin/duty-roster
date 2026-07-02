@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use iced::widget::{button, column, container, mouse_area, row, text};
-use iced::{Element, Fill, Theme};
-use std::collections::{BTreeMap, BTreeSet};
+use iced::{Color, Element, Fill, Theme};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use super::{CellPosition, Message};
 use crate::schedule::Assignment;
@@ -156,12 +156,20 @@ impl TableState {
     }
 }
 
+fn groupmate_dim_style(_theme: &Theme, _status: button::Status) -> button::Style {
+    button::Style {
+        text_color: Color::from_rgb(0.7, 0.7, 0.7),
+        ..button::Style::default()
+    }
+}
+
 /// Create a table view from assignments
 pub fn create_table_from_assignments<'a>(
     assignments: &'a [Assignment],
     selected_cell: Option<&'a CellPosition>,
     hovered_cell: Option<&'a CellPosition>,
     highlighted_names: &'a [Option<String>; 4],
+    hovered_groupmates: &HashSet<String>,
 ) -> Element<'a, Message> {
     let mut rows = Vec::new();
 
@@ -229,10 +237,6 @@ pub fn create_table_from_assignments<'a>(
                 .map(|pos| pos.row == cell_position.row && pos.column == cell_position.column)
                 .unwrap_or(false);
 
-            let _is_hovered = hovered_cell
-                .map(|pos| pos.row == cell_position.row && pos.column == cell_position.column)
-                .unwrap_or(false);
-
             let highlight_slot = if person.is_empty() {
                 None
             } else {
@@ -240,6 +244,13 @@ pub fn create_table_from_assignments<'a>(
                     .iter()
                     .position(|p| p.as_deref() == Some(person.as_str()))
             };
+
+            // Find base_person for this cell to check groupmate membership
+            let base = assignments.iter()
+                .find(|a| a.person == person)
+                .map(|a| a.base_person.as_str())
+                .unwrap_or(person.as_str());
+            let is_groupmate = !person.is_empty() && hovered_groupmates.contains(base);
 
             // Create clickable cell with appropriate style
             let cell_btn = if is_selected {
@@ -262,6 +273,12 @@ pub fn create_table_from_assignments<'a>(
                         2 => highlighted_cell_button_style_green,
                         _ => highlighted_cell_button_style_blue,
                     })
+            } else if is_groupmate {
+                button(text(person.clone()).size(12))
+                    .width(Fill)
+                    .padding(3)
+                    .on_press(Message::CellClicked(cell_position))
+                    .style(groupmate_dim_style)
             } else {
                 button(text(person.clone()).size(12))
                     .width(Fill)
@@ -472,7 +489,7 @@ mod tests {
         let highlighted_names = [None, None, None, None];
 
         // Create a table with no selection or hover
-        let element = create_table_from_assignments(&assignments, None, None, &highlighted_names);
+        let element = create_table_from_assignments(&assignments, None, None, &highlighted_names, &HashSet::new());
 
         // We can't easily test the actual UI rendering, but we can ensure the function runs without panicking
         // and returns an Element
@@ -485,6 +502,7 @@ mod tests {
             selected_cell.as_ref(),
             None,
             &highlighted_names,
+            &HashSet::new(),
         );
         assert!(element.as_widget().children().len() > 0);
 
@@ -495,11 +513,12 @@ mod tests {
             None,
             hovered_cell.as_ref(),
             &highlighted_names,
+            &HashSet::new(),
         );
         assert!(element.as_widget().children().len() > 0);
 
         let highlighted_names = [Some("Person1".to_string()), None, None, None];
-        let element = create_table_from_assignments(&assignments, None, None, &highlighted_names);
+        let element = create_table_from_assignments(&assignments, None, None, &highlighted_names, &HashSet::new());
         assert!(element.as_widget().children().len() > 0);
     }
 }
