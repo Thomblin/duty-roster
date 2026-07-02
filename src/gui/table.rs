@@ -325,11 +325,13 @@ mod tests {
                 date: create_test_date(2025, 9, 1),
                 place: "Place A".to_string(),
                 person: "Person1".to_string(),
+                base_person: "Person1".to_string(),
             },
             Assignment {
                 date: create_test_date(2025, 9, 2),
                 place: "Place B".to_string(),
                 person: "Person2".to_string(),
+                base_person: "Person2".to_string(),
             },
         ]
     }

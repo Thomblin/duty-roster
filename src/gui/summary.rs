@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use iced::widget::{column, container, mouse_area, row, text};
 use iced::{Element, FillPortion, Theme};
 
 use super::Message;
-use crate::schedule::PersonState;
+use crate::schedule::{Assignment, PersonState};
 
 // Container style functions
 pub fn summary_header_style(_theme: &Theme) -> container::Style {
@@ -56,11 +58,33 @@ fn highlight_slot_for_person(
         .position(|p| p.as_deref() == Some(person_name))
 }
 
+/// Build a map: base_person → HashMap<icon, count> from assignments that have extra tasks applied
+pub(crate) fn extra_task_counts(assignments: &[Assignment]) -> HashMap<String, HashMap<String, usize>> {
+    let mut result: HashMap<String, HashMap<String, usize>> = HashMap::new();
+    for a in assignments {
+        if a.person == a.base_person {
+            continue;
+        }
+        // Icons are everything after base_person + space
+        let suffix = &a.person[a.base_person.len()..].trim();
+        for icon in suffix.split_whitespace() {
+            *result
+                .entry(a.base_person.clone())
+                .or_default()
+                .entry(icon.to_string())
+                .or_default() += 1;
+        }
+    }
+    result
+}
+
 /// Create a summary view from people states
 pub fn create_summary_view_from_people<'a>(
     people: &'a [PersonState],
+    assignments: &'a [Assignment],
     highlighted_names: &'a [Option<String>; 4],
 ) -> Element<'a, Message> {
+    let extra_counts = extra_task_counts(assignments);
     let mut rows = Vec::new();
 
     // Header
@@ -78,7 +102,8 @@ pub fn create_summary_view_from_people<'a>(
             text("Total").size(12).width(FillPortion(1)),
             text("Weekday Stats").size(12).width(FillPortion(3)),
             text("Place Counts").size(12).width(FillPortion(3)),
-            text("Different Place").size(12).width(FillPortion(1))
+            text("Different Place").size(12).width(FillPortion(1)),
+            text("Extra Tasks").size(12).width(FillPortion(2)),
         ])
         .padding(3)
         .style(summary_column_header_style)
@@ -108,6 +133,16 @@ pub fn create_summary_view_from_people<'a>(
             .collect::<Vec<String>>()
             .join(", ");
 
+        // Format extra task counts
+        let extra_stats = if let Some(counts) = extra_counts.get(person.name().as_str()) {
+            let mut entries: Vec<String> =
+                counts.iter().map(|(icon, n)| format!("{icon}: {n}")).collect();
+            entries.sort();
+            entries.join(", ")
+        } else {
+            String::new()
+        };
+
         let highlight_slot = highlight_slot_for_person(highlighted_names, person.name().as_str());
 
         let row_container = container(row![
@@ -115,7 +150,8 @@ pub fn create_summary_view_from_people<'a>(
             text(total).size(12).width(FillPortion(1)),
             text(weekday_stats).size(12).width(FillPortion(2)),
             text(place_stats).size(12).width(FillPortion(3)),
-            text(different_place).size(12).width(FillPortion(1))
+            text(different_place).size(12).width(FillPortion(1)),
+            text(extra_stats).size(12).width(FillPortion(2)),
         ])
         .padding(3);
 
@@ -257,7 +293,7 @@ mod tests {
         let people = create_test_people();
 
         // Create the summary view
-        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
+        let element = create_summary_view_from_people(&people, &[], &[None, None, None, None]);
 
         // We can't easily test the actual UI rendering, but we can ensure the function runs without panicking
         // and returns an Element
@@ -270,7 +306,7 @@ mod tests {
         let people: Vec<PersonState> = Vec::new();
 
         // Create the summary view
-        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
+        let element = create_summary_view_from_people(&people, &[], &[None, None, None, None]);
 
         // Should still create headers even with no data
         assert!(element.as_widget().children().len() > 0);
@@ -292,7 +328,7 @@ mod tests {
         person.register_service(create_test_date(2025, 9, 4), "Place A".to_string());
 
         let people = vec![person];
-        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
+        let element = create_summary_view_from_people(&people, &[], &[None, None, None, None]);
 
         // Verify the element is created successfully
         assert!(element.as_widget().children().len() > 0);
@@ -322,7 +358,7 @@ mod tests {
             people.push(person);
         }
 
-        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
+        let element = create_summary_view_from_people(&people, &[], &[None, None, None, None]);
 
         // Should have created element successfully
         assert!(element.as_widget().children().len() > 0);
@@ -348,7 +384,7 @@ mod tests {
         assert_eq!(*place_counts.get("Away").unwrap(), 1);
 
         let people = vec![person];
-        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
+        let element = create_summary_view_from_people(&people, &[], &[None, None, None, None]);
 
         // Verify element is created
         assert!(element.as_widget().children().len() > 0);
@@ -369,7 +405,7 @@ mod tests {
         person.register_service(create_test_date(2025, 9, 3), "Place_C".to_string());
 
         let people = vec![person];
-        let element = create_summary_view_from_people(&people, &[None, None, None, None]);
+        let element = create_summary_view_from_people(&people, &[], &[None, None, None, None]);
 
         assert!(element.as_widget().children().len() > 0);
     }

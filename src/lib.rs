@@ -4,6 +4,7 @@
 pub mod config;
 pub mod csv;
 pub mod dates;
+pub mod extra_tasks;
 pub mod gui;
 pub mod schedule;
 

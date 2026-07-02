@@ -100,11 +100,13 @@ mod tests {
                 date: create_test_date(2025, 9, 1),
                 place: "Place A".to_string(),
                 person: "Person1".to_string(),
+                base_person: "Person1".to_string(),
             },
             Assignment {
                 date: create_test_date(2025, 9, 2),
                 place: "Place B".to_string(),
                 person: "Person2".to_string(),
+                base_person: "Person2".to_string(),
             },
         ]
     }
@@ -250,6 +252,7 @@ fn test_store_csv_with_real_file() {
         date,
         place: "Place A".to_string(),
         person: "Person1".to_string(),
+        base_person: "Person1".to_string(),
     }];
 
     // Create test people
@@ -318,11 +321,13 @@ fn test_store_csv_with_place_counts() {
             date: date1,
             place: "Place A".to_string(),
             person: "Person1".to_string(),
+            base_person: "Person1".to_string(),
         },
         Assignment {
             date: date1,
             place: "Place B".to_string(),
             person: "Person1".to_string(),
+            base_person: "Person1".to_string(),
         },
     ];
 
@@ -388,11 +393,13 @@ fn test_store_csv_multiple_people_with_places() {
             date: date1,
             place: "Place A".to_string(),
             person: "Alice".to_string(),
+            base_person: "Alice".to_string(),
         },
         Assignment {
             date: date1,
             place: "Place B".to_string(),
             person: "Bob".to_string(),
+            base_person: "Bob".to_string(),
         },
     ];
 

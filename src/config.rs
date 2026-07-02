@@ -11,6 +11,14 @@ pub struct Config {
     pub places: Places,
     pub group: Vec<Group>,
     pub rules: Rules,
+    pub extra_task: Option<Vec<ExtraTask>>,
+}
+
+/// an additional task to be distributed across eligible group members
+#[derive(Deserialize, Debug)]
+pub struct ExtraTask {
+    pub name: String,
+    pub groups: Vec<String>,
 }
 
 /// the schedule can create tasks per day per place
@@ -86,6 +94,50 @@ mod tests {
     use chrono::NaiveDate;
 
     use super::*;
+
+    #[test]
+    fn test_load_config_with_extra_tasks() {
+        let toml = r#"
+            [dates]
+            from = "2025-01-01"
+            to = "2025-12-31"
+            exceptions = []
+            weekdays = ["Mon"]
+
+            [places]
+            places = ["Place A"]
+
+            [[group]]
+            name = "Maier"
+            place = "Place A"
+            [[group.members]]
+            name = "Alice"
+
+            [rules]
+            sort = []
+            filter = []
+
+            [[extra_task]]
+            name = "🪴"
+            groups = ["Maier", "Doe"]
+
+            [[extra_task]]
+            name = "🪟"
+            groups = ["Maier"]
+        "#;
+        let config: Config = toml::from_str(toml).unwrap();
+        let tasks = config.extra_task.unwrap();
+        assert_eq!(tasks.len(), 2);
+        assert_eq!(tasks[0].name, "🪴");
+        assert_eq!(tasks[0].groups, vec!["Maier", "Doe"]);
+        assert_eq!(tasks[1].name, "🪟");
+    }
+
+    #[test]
+    fn test_load_config_without_extra_tasks_is_none() {
+        let config = load_config("test/config.toml").expect("Failed to load config");
+        assert!(config.extra_task.is_none());
+    }
 
     #[test]
     fn test_load_config() {

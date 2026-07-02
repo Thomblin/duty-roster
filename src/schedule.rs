@@ -35,6 +35,7 @@ pub struct Assignment {
     pub date: NaiveDate,
     pub place: String,
     pub person: String,
+    pub base_person: String,
 }
 
 /// parse the configuration and assign someone on the given dates for the defined tasks(places)
@@ -65,10 +66,12 @@ pub fn create_schedule(
             candidates.sort_by_key(|p| p.sort_key(*date, place_id, &config.rules));
 
             if let Some(chosen) = candidates.first_mut() {
+                let name = chosen.name();
                 assignments.push(Assignment {
                     date: *date,
                     place: place_id.clone(),
-                    person: chosen.name(),
+                    person: name.clone(),
+                    base_person: name,
                 });
                 chosen.register_service(*date, place_id.clone());
             }

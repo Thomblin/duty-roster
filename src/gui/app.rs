@@ -30,6 +30,7 @@ pub enum Message {
     ConfigSelected(String),
     RefreshConfigList,
     GenerateSchedule,
+    ApplyExtraTasks,
     SaveScheduleWithDate,
     SaveSchedule(String), // filename only
     ConfigsLoaded(Result<Vec<String>, String>),
@@ -117,6 +118,15 @@ pub fn update(app: &mut DutyRosterApp, message: Message) -> Task<Message> {
                 async { crate::gui::find_config_files().await },
                 Message::ConfigsLoaded,
             )
+        }
+        Message::ApplyExtraTasks => {
+            if let Some(config_path) = &app.state.selected_config.clone()
+                && let Ok(config) = load_config(config_path)
+                && !app.state.assignments.is_empty()
+            {
+                crate::extra_tasks::apply_extra_tasks(&mut app.state.assignments, &config);
+            }
+            Task::none()
         }
         Message::GenerateSchedule => {
             if let Some(config_path) = &app.state.selected_config {
@@ -250,13 +260,18 @@ pub fn view(app: &DutyRosterApp) -> Element<'_, Message> {
 
     let generate_button =
         button(text("Generate Schedule").size(14)).on_press(Message::GenerateSchedule);
+    let extra_tasks_button = if !app.state.assignments.is_empty() {
+        button(text("Apply Extra Tasks").size(14)).on_press(Message::ApplyExtraTasks)
+    } else {
+        button(text("Apply Extra Tasks").size(14)).style(button::secondary)
+    };
     let save_button = if !app.state.assignments.is_empty() {
         button(text("Save").size(14)).on_press(Message::SaveScheduleWithDate)
     } else {
         button(text("Save").size(14)).style(button::secondary)
     };
 
-    let mut content = column![title, config_selector, row![generate_button, save_button]]
+    let mut content = column![title, config_selector, row![generate_button, extra_tasks_button, save_button]]
         .spacing(15)
         .padding(15);
 
@@ -318,6 +333,7 @@ pub fn view(app: &DutyRosterApp) -> Element<'_, Message> {
                 if !app.state.people.is_empty() {
                     let summary_view = summary::create_summary_view_from_people(
                         &app.state.people,
+                        &app.state.assignments,
                         &app.state.highlighted_names,
                     );
                     content = content.push(scrollable(summary_view).height(FillPortion(3)));
@@ -342,6 +358,7 @@ impl DutyRosterApp {
         match csv_result {
             Ok(csv_content) => {
                 // Create summary content directly from people states
+                let extra_counts = summary::extra_task_counts(&self.state.assignments);
                 let mut summary_content = String::new();
                 for person in &self.state.people {
                     let name = person.name();
@@ -353,9 +370,20 @@ impl DutyRosterApp {
                     }
 
                     summary_content.push_str(&format!(
-                        ", different_place: {}\n",
+                        ", different_place: {}",
                         person.different_place_services()
                     ));
+
+                    if let Some(counts) = extra_counts.get(&name) {
+                        let mut entries: Vec<String> =
+                            counts.iter().map(|(icon, n)| format!("{icon}: {n}")).collect();
+                        entries.sort();
+                        for e in entries {
+                            summary_content.push_str(&format!(", {e}"));
+                        }
+                    }
+
+                    summary_content.push('\n');
                 }
 
                 let filename_for_message = filename.clone();
@@ -400,11 +428,13 @@ mod tests {
                 date: create_test_date(2025, 9, 1),
                 place: "Place A".to_string(),
                 person: "Person1".to_string(),
+                base_person: "Person1".to_string(),
             },
             Assignment {
                 date: create_test_date(2025, 9, 2),
                 place: "Place B".to_string(),
                 person: "Person2".to_string(),
+                base_person: "Person2".to_string(),
             },
         ]
     }
@@ -576,6 +606,14 @@ mod tests {
     }
 
     #[test]
+    fn test_apply_extra_tasks_message_with_no_assignments_is_noop() {
+        let mut app = create_test_app();
+        app.state.selected_config = Some("test_config.toml".to_string());
+        let _ = update(&mut app, Message::ApplyExtraTasks);
+        assert!(app.state.assignments.is_empty());
+    }
+
+    #[test]
     fn test_update_refresh_config_list() {
         let mut app = create_test_app();
 
@@ -688,6 +726,7 @@ mod tests {
             date,
             place: "Place A".to_string(),
             person: "Person1".to_string(),
+            base_person: "Person1".to_string(),
         }];
 
         // Test handling a successful schedule generation
@@ -740,6 +779,7 @@ mod tests {
             date: create_test_date(2025, 9, 1),
             place: "Place A".to_string(),
             person: "Person1".to_string(),
+            base_person: "Person1".to_string(),
         }];
 
         let _ = update(&mut app, Message::ScheduleGenerated(Ok(assignments)));
@@ -807,6 +847,7 @@ mod tests {
                     date,
                     place: place.clone(),
                     person: "Person1 G".to_string(),
+                    base_person: "Person1 G".to_string(),
                 });
             }
         }
@@ -880,6 +921,7 @@ mod tests {
             date,
             place: "Place A".to_string(),
             person: "Person1".to_string(),
+            base_person: "Person1".to_string(),
         }];
 
         // Add test people

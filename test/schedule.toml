@@ -10,6 +10,14 @@ weekdays = [ # create a schedule only on these weekdays
     "Fri",
 ]
 
+[[extra_task]]
+name = "🪴"
+groups = ["Office"]
+
+[[extra_task]]
+name = "🪟"
+groups = ["Office", "Transport"]
+
 [places]
 places = [
     "Office",

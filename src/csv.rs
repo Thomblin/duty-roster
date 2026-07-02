@@ -61,21 +61,25 @@ mod tests {
                 date: NaiveDate::from_ymd_opt(2025, 9, 6).unwrap(),
                 place: "PlaceA".to_string(),
                 person: "Alice".to_string(),
+                base_person: "Alice".to_string(),
             },
             Assignment {
                 date: NaiveDate::from_ymd_opt(2025, 9, 6).unwrap(),
                 place: "PlaceB".to_string(),
                 person: "Bob".to_string(),
+                base_person: "Bob".to_string(),
             },
             Assignment {
                 date: NaiveDate::from_ymd_opt(2025, 9, 7).unwrap(),
                 place: "PlaceA".to_string(),
                 person: "Charlie".to_string(),
+                base_person: "Charlie".to_string(),
             },
             Assignment {
                 date: NaiveDate::from_ymd_opt(2025, 9, 7).unwrap(),
                 place: "PlaceB".to_string(),
                 person: "Alice".to_string(),
+                base_person: "Alice".to_string(),
             },
         ];
 

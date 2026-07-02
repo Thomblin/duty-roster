@@ -84,6 +84,14 @@ places = [
     "Place B",
 ]
 
+[[extra_task]] # define extra tasks that need to be done by each person who is assigned to the given place 
+name = "🪴"
+groups = ["Place A"]
+
+[[extra_task]]
+name = "🪟"
+groups = ["Place A", "Place B"]
+
 [[group]]
 name = "Smith"
 place = "Place A"
