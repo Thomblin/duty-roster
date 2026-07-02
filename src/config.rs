@@ -74,6 +74,7 @@ pub struct Rules {
 #[serde(rename_all = "camelCase")]
 pub enum Rule {
     FilterSamePlace,                 // assign people only to their own place
+    FilterDifferentPlaceCap,         // cap how many different-place assignments any one person gets
     SortByLeastServices,             // everyone works the same amount of hours
     SortByLessServicesAtSameWeekday, // everyone should work on each weekday the same amount
     SortByLastService,               // prefer people who were assigned further back in the past

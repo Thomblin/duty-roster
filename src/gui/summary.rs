@@ -65,8 +65,9 @@ pub(crate) fn extra_task_counts(assignments: &[Assignment]) -> HashMap<String, H
         if a.person == a.base_person {
             continue;
         }
-        // Icons are everything after base_person + space
-        let suffix = &a.person[a.base_person.len()..].trim();
+        // Icons are everything after base_person + space; guard in case of manual edits
+        let Some(rest) = a.person.strip_prefix(a.base_person.as_str()) else { continue };
+        let suffix = rest.trim();
         for icon in suffix.split_whitespace() {
             *result
                 .entry(a.base_person.clone())

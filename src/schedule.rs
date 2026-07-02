@@ -47,6 +47,25 @@ pub fn create_schedule(
 
     let mut assignments = Vec::new();
     let filter_same_workid = config.rules.filter.contains(&Rule::FilterSamePlace);
+    let filter_diff_cap = config.rules.filter.contains(&Rule::FilterDifferentPlaceCap);
+
+    // Dynamic different-place cap: people from places larger than the smallest group
+    // are eligible to do cross-place work. The cap starts at min_eligible_count + 1,
+    // so no one gets a second cross-place assignment until everyone has had at least one.
+    // Precompute which places are "eligible" (above the minimum group size).
+    let diff_place_eligible_places: std::collections::HashSet<String> = if filter_diff_cap {
+        let mut place_sizes: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+        for p in &people {
+            *place_sizes.entry(p.place()).or_default() += 1;
+        }
+        let min_size = place_sizes.values().copied().min().unwrap_or(0);
+        place_sizes.into_iter()
+            .filter(|(_, size)| *size > min_size)
+            .map(|(place, _)| place)
+            .collect()
+    } else {
+        std::collections::HashSet::new()
+    };
 
     for date in dates {
         if config.dates.exceptions.contains(date) {
@@ -57,9 +76,28 @@ pub fn create_schedule(
         people.shuffle(&mut rng);
 
         for place_id in &config.places.places {
+            // Dynamic cap: min cross-place count among eligible people + 1.
+            // No one gets their Nth cross-place assignment until everyone has had N-1.
+            let dynamic_cap: usize = if filter_diff_cap {
+                let min_among_eligible = people.iter()
+                    .filter(|p| diff_place_eligible_places.contains(&p.place()))
+                    .map(|p| p.different_place_services())
+                    .min()
+                    .unwrap_or(0);
+                min_among_eligible + 1
+            } else {
+                usize::MAX
+            };
+
             let mut candidates: Vec<&mut PersonState> = people
                 .iter_mut()
                 .filter(|p| !filter_same_workid || &p.place() == place_id)
+                .filter(|p| {
+                    !filter_diff_cap
+                        || p.place() == *place_id
+                        || !diff_place_eligible_places.contains(&p.place())
+                        || p.different_place_services() < dynamic_cap
+                })
                 .collect();
 
             // Sort by precomputed tuple keys

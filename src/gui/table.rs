@@ -206,7 +206,7 @@ pub fn create_table_from_assignments<'a>(
         let mut row_content = row![];
 
         // Add date column
-        let date_str: String = date.to_string();
+        let date_str: String = format!("{} {}", date.format("%a"), date);
         row_content = row_content.push(
             container(text(date_str).size(12))
                 .padding(3)

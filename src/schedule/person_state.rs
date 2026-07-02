@@ -133,7 +133,7 @@ impl PersonState {
                             None => i64::MIN,
                         }
                     }
-                    Rule::FilterSamePlace => 0,
+                    Rule::FilterSamePlace | Rule::FilterDifferentPlaceCap => 0,
                 }
             })
             .collect()
