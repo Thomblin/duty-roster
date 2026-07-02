@@ -54,12 +54,14 @@ pub fn create_schedule(
     // so no one gets a second cross-place assignment until everyone has had at least one.
     // Precompute which places are "eligible" (above the minimum group size).
     let diff_place_eligible_places: std::collections::HashSet<String> = if filter_diff_cap {
-        let mut place_sizes: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+        let mut place_sizes: std::collections::HashMap<String, usize> =
+            std::collections::HashMap::new();
         for p in &people {
             *place_sizes.entry(p.place()).or_default() += 1;
         }
         let min_size = place_sizes.values().copied().min().unwrap_or(0);
-        place_sizes.into_iter()
+        place_sizes
+            .into_iter()
             .filter(|(_, size)| *size > min_size)
             .map(|(place, _)| place)
             .collect()
@@ -79,7 +81,8 @@ pub fn create_schedule(
             // Dynamic cap: min cross-place count among eligible people + 1.
             // No one gets their Nth cross-place assignment until everyone has had N-1.
             let dynamic_cap: usize = if filter_diff_cap {
-                let min_among_eligible = people.iter()
+                let min_among_eligible = people
+                    .iter()
                     .filter(|p| diff_place_eligible_places.contains(&p.place()))
                     .map(|p| p.different_place_services())
                     .min()

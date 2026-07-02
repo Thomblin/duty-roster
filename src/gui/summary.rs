@@ -59,14 +59,18 @@ fn highlight_slot_for_person(
 }
 
 /// Build a map: base_person → HashMap<icon, count> from assignments that have extra tasks applied
-pub(crate) fn extra_task_counts(assignments: &[Assignment]) -> HashMap<String, HashMap<String, usize>> {
+pub(crate) fn extra_task_counts(
+    assignments: &[Assignment],
+) -> HashMap<String, HashMap<String, usize>> {
     let mut result: HashMap<String, HashMap<String, usize>> = HashMap::new();
     for a in assignments {
         if a.person == a.base_person {
             continue;
         }
         // Icons are everything after base_person + space; guard in case of manual edits
-        let Some(rest) = a.person.strip_prefix(a.base_person.as_str()) else { continue };
+        let Some(rest) = a.person.strip_prefix(a.base_person.as_str()) else {
+            continue;
+        };
         let suffix = rest.trim();
         for icon in suffix.split_whitespace() {
             *result
@@ -136,8 +140,10 @@ pub fn create_summary_view_from_people<'a>(
 
         // Format extra task counts
         let extra_stats = if let Some(counts) = extra_counts.get(person.name().as_str()) {
-            let mut entries: Vec<String> =
-                counts.iter().map(|(icon, n)| format!("{icon}: {n}")).collect();
+            let mut entries: Vec<String> = counts
+                .iter()
+                .map(|(icon, n)| format!("{icon}: {n}"))
+                .collect();
             entries.sort();
             entries.join(", ")
         } else {

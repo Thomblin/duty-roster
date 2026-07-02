@@ -271,9 +271,13 @@ pub fn view(app: &DutyRosterApp) -> Element<'_, Message> {
         button(text("Save").size(14)).style(button::secondary)
     };
 
-    let mut content = column![title, config_selector, row![generate_button, extra_tasks_button, save_button]]
-        .spacing(15)
-        .padding(15);
+    let mut content = column![
+        title,
+        config_selector,
+        row![generate_button, extra_tasks_button, save_button]
+    ]
+    .spacing(15)
+    .padding(15);
 
     // Display error if any
     if let Some(error) = &app.state.error {
@@ -317,26 +321,37 @@ pub fn view(app: &DutyRosterApp) -> Element<'_, Message> {
         content = content.push(row![schedule_tab, summary_tab].spacing(5));
 
         // Compute group-mates of the hovered person for dim highlighting (must outlive match)
-        let hovered_groupmates: std::collections::HashSet<String> = app.state
+        let hovered_groupmates: std::collections::HashSet<String> = app
+            .state
             .hovered_cell
             .and_then(|pos| app.state.get_cell_info(pos))
             .and_then(|(_, _, person)| {
-                app.state.assignments.iter()
+                app.state
+                    .assignments
+                    .iter()
                     .find(|a| a.person == person)
                     .map(|a| a.base_person.clone())
             })
             .and_then(|base| {
-                app.state.selected_config.as_ref()
+                app.state
+                    .selected_config
+                    .as_ref()
                     .and_then(|p| load_config(p).ok())
                     .map(|cfg| {
-                        cfg.group.iter()
-                            .find(|g| g.members.iter().any(|m| {
-                                format!("{} {}", m.name, g.name) == base
-                            }))
-                            .map(|g| g.members.iter()
-                                .map(|m| format!("{} {}", m.name, g.name))
-                                .filter(|n| n != &base)
-                                .collect())
+                        cfg.group
+                            .iter()
+                            .find(|g| {
+                                g.members
+                                    .iter()
+                                    .any(|m| format!("{} {}", m.name, g.name) == base)
+                            })
+                            .map(|g| {
+                                g.members
+                                    .iter()
+                                    .map(|m| format!("{} {}", m.name, g.name))
+                                    .filter(|n| n != &base)
+                                    .collect()
+                            })
                             .unwrap_or_default()
                     })
             })
@@ -402,8 +417,10 @@ impl DutyRosterApp {
                     ));
 
                     if let Some(counts) = extra_counts.get(&name) {
-                        let mut entries: Vec<String> =
-                            counts.iter().map(|(icon, n)| format!("{icon}: {n}")).collect();
+                        let mut entries: Vec<String> = counts
+                            .iter()
+                            .map(|(icon, n)| format!("{icon}: {n}"))
+                            .collect();
                         entries.sort();
                         for e in entries {
                             summary_content.push_str(&format!(", {e}"));
