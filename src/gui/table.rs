@@ -167,7 +167,7 @@ fn groupmate_dim_style(_theme: &Theme, _status: button::Status) -> button::Style
 pub fn create_table_from_assignments<'a>(
     assignments: &'a [Assignment],
     selected_cell: Option<&'a CellPosition>,
-    hovered_cell: Option<&'a CellPosition>,
+    _hovered_cell: Option<&'a CellPosition>,
     highlighted_names: &'a [Option<String>; 4],
     hovered_groupmates: &HashSet<String>,
 ) -> Element<'a, Message> {
@@ -246,7 +246,8 @@ pub fn create_table_from_assignments<'a>(
             };
 
             // Find base_person for this cell to check groupmate membership
-            let base = assignments.iter()
+            let base = assignments
+                .iter()
                 .find(|a| a.person == person)
                 .map(|a| a.base_person.as_str())
                 .unwrap_or(person.as_str());
@@ -489,7 +490,13 @@ mod tests {
         let highlighted_names = [None, None, None, None];
 
         // Create a table with no selection or hover
-        let element = create_table_from_assignments(&assignments, None, None, &highlighted_names, &HashSet::new());
+        let element = create_table_from_assignments(
+            &assignments,
+            None,
+            None,
+            &highlighted_names,
+            &HashSet::new(),
+        );
 
         // We can't easily test the actual UI rendering, but we can ensure the function runs without panicking
         // and returns an Element
@@ -518,7 +525,13 @@ mod tests {
         assert!(element.as_widget().children().len() > 0);
 
         let highlighted_names = [Some("Person1".to_string()), None, None, None];
-        let element = create_table_from_assignments(&assignments, None, None, &highlighted_names, &HashSet::new());
+        let element = create_table_from_assignments(
+            &assignments,
+            None,
+            None,
+            &highlighted_names,
+            &HashSet::new(),
+        );
         assert!(element.as_widget().children().len() > 0);
     }
 }
