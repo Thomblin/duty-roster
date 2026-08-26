@@ -213,8 +213,5 @@ mod tests {
             TestMessage::ConfigSelected,
             TestMessage::Refresh,
         );
-
-        // Just ensure the test passes without panicking
-        assert!(true);
     }
 }

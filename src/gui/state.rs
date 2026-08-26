@@ -236,8 +236,10 @@ mod tests {
 
     #[test]
     fn test_get_cell_info_valid_position() {
-        let mut state = AppState::default();
-        state.assignments = create_test_assignments();
+        let state = AppState {
+            assignments: create_test_assignments(),
+            ..Default::default()
+        };
 
         // Test valid position
         let cell_info = state.get_cell_info(CellPosition { row: 1, column: 1 });
@@ -252,8 +254,10 @@ mod tests {
 
     #[test]
     fn test_get_cell_info_invalid_position() {
-        let mut state = AppState::default();
-        state.assignments = create_test_assignments();
+        let state = AppState {
+            assignments: create_test_assignments(),
+            ..Default::default()
+        };
 
         // Test header row (row 0)
         let cell_info = state.get_cell_info(CellPosition { row: 0, column: 1 });
@@ -273,8 +277,10 @@ mod tests {
 
     #[test]
     fn test_handle_cell_click_first_selection() {
-        let mut state = AppState::default();
-        state.assignments = create_test_assignments();
+        let mut state = AppState {
+            assignments: create_test_assignments(),
+            ..Default::default()
+        };
 
         // First click should select the cell
         let pos = CellPosition { row: 1, column: 1 };
@@ -285,8 +291,10 @@ mod tests {
 
     #[test]
     fn test_handle_cell_click_deselect() {
-        let mut state = AppState::default();
-        state.assignments = create_test_assignments();
+        let mut state = AppState {
+            assignments: create_test_assignments(),
+            ..Default::default()
+        };
 
         // First click selects the cell
         let pos = CellPosition { row: 1, column: 1 };
@@ -300,8 +308,10 @@ mod tests {
 
     #[test]
     fn test_handle_cell_click_header_row() {
-        let mut state = AppState::default();
-        state.assignments = create_test_assignments();
+        let mut state = AppState {
+            assignments: create_test_assignments(),
+            ..Default::default()
+        };
 
         // Clicking on header row should do nothing
         let pos = CellPosition { row: 0, column: 1 };

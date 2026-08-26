@@ -58,8 +58,5 @@ mod tests_run {
         // If this compiles, it means the signatures match
         let _: fn() -> iced::Result = mock_run;
         let _: fn() -> iced::Result = super::run;
-
-        // Just assert true to have a passing test
-        assert!(true);
     }
 }

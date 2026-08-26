@@ -189,13 +189,13 @@ mod tests {
     #[test]
     fn test_args_parsing() {
         // Test default values
-        let args = Args::parse_from(&["duty-roster"]);
+        let args = Args::parse_from(["duty-roster"]);
         assert_eq!(args.config, "config.toml");
         assert_eq!(args.out, "schedule.csv");
         assert!(!args.cli);
 
         // Test with custom values
-        let args = Args::parse_from(&[
+        let args = Args::parse_from([
             "duty-roster",
             "--config",
             "custom.toml",
@@ -208,8 +208,7 @@ mod tests {
         assert!(args.cli);
 
         // Test with short options
-        let args =
-            Args::parse_from(&["duty-roster", "-c", "custom.toml", "-o", "output.csv", "-C"]);
+        let args = Args::parse_from(["duty-roster", "-c", "custom.toml", "-o", "output.csv", "-C"]);
         assert_eq!(args.config, "custom.toml");
         assert_eq!(args.out, "output.csv");
         assert!(args.cli);
@@ -229,9 +228,6 @@ fn test_main_function_signature() {
     // If this compiles, it means the signatures match
     let _: fn() -> Result<(), Box<dyn std::error::Error>> = mock_main;
     let _: fn() -> Result<(), Box<dyn std::error::Error>> = main;
-
-    // Just assert true to have a passing test
-    assert!(true);
 }
 
 #[test]

@@ -500,7 +500,7 @@ mod tests {
 
         // We can't easily test the actual UI rendering, but we can ensure the function runs without panicking
         // and returns an Element
-        assert!(element.as_widget().children().len() > 0);
+        assert!(!element.as_widget().children().is_empty());
 
         // Create a table with selection
         let selected_cell = Some(CellPosition { row: 1, column: 1 });
@@ -511,7 +511,7 @@ mod tests {
             &highlighted_names,
             &HashSet::new(),
         );
-        assert!(element.as_widget().children().len() > 0);
+        assert!(!element.as_widget().children().is_empty());
 
         // Create a table with hover
         let hovered_cell = Some(CellPosition { row: 1, column: 1 });
@@ -522,7 +522,7 @@ mod tests {
             &highlighted_names,
             &HashSet::new(),
         );
-        assert!(element.as_widget().children().len() > 0);
+        assert!(!element.as_widget().children().is_empty());
 
         let highlighted_names = [Some("Person1".to_string()), None, None, None];
         let element = create_table_from_assignments(
@@ -532,6 +532,6 @@ mod tests {
             &highlighted_names,
             &HashSet::new(),
         );
-        assert!(element.as_widget().children().len() > 0);
+        assert!(!element.as_widget().children().is_empty());
     }
 }

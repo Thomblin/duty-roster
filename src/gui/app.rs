@@ -987,16 +987,12 @@ mod tests {
         // Verify a command was returned (we can't easily test the actual command)
         // Just check that it's not empty by using a dummy variable
         let _ = cmd;
-
-        // The test passes if we get here without panicking
-        assert!(true);
     }
 
     #[test]
     fn test_handle_save_schedule_csv_error_branch() {
         let mut app = create_test_app();
-        let err: Box<dyn std::error::Error> =
-            Box::new(std::io::Error::new(std::io::ErrorKind::Other, "csv error"));
+        let err: Box<dyn std::error::Error> = Box::new(std::io::Error::other("csv error"));
 
         let _cmd = app.handle_save_schedule("x.csv".to_string(), Err(err));
         assert!(

@@ -147,7 +147,7 @@ mod tests {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.calls += 1;
             if self.calls == self.fail_on_call && !buf.is_empty() {
-                return Err(io::Error::new(io::ErrorKind::Other, "write failed"));
+                return Err(io::Error::other("write failed"));
             }
             Ok(buf.len())
         }

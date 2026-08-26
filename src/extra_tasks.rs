@@ -10,7 +10,7 @@ use crate::schedule::{Assignment, display_name};
 /// among eligible persons (those whose group is listed in the task's `groups`).
 /// For each date, picks the eligible person with the fewest prior assignments of
 /// this task; prefers persons not already carrying another extra task that day (soft).
-pub fn apply_extra_tasks(assignments: &mut Vec<Assignment>, config: &Config) {
+pub fn apply_extra_tasks(assignments: &mut [Assignment], config: &Config) {
     // Reset person to base_person for all assignments
     for a in assignments.iter_mut() {
         a.person = a.base_person.clone();
@@ -180,7 +180,6 @@ pub fn apply_extra_tasks(assignments: &mut Vec<Assignment>, config: &Config) {
                     let mut dates = person_dates.get(&person).cloned().unwrap_or_default();
                     dates.sort();
                     for date in dates {
-                        let date = date; // shadow to owned
                         // This person doesn't hold the task on this date
                         if date_holder.get(&date).map(|h| h.as_str()) == Some(person.as_str()) {
                             continue;

@@ -304,7 +304,7 @@ mod tests {
 
         // We can't easily test the actual UI rendering, but we can ensure the function runs without panicking
         // and returns an Element
-        assert!(element.as_widget().children().len() > 0);
+        assert!(!element.as_widget().children().is_empty());
     }
 
     #[test]
@@ -316,7 +316,7 @@ mod tests {
         let element = create_summary_view_from_people(&people, &[], &[None, None, None, None]);
 
         // Should still create headers even with no data
-        assert!(element.as_widget().children().len() > 0);
+        assert!(!element.as_widget().children().is_empty());
     }
 
     #[test]
@@ -338,7 +338,7 @@ mod tests {
         let element = create_summary_view_from_people(&people, &[], &[None, None, None, None]);
 
         // Verify the element is created successfully
-        assert!(element.as_widget().children().len() > 0);
+        assert!(!element.as_widget().children().is_empty());
     }
 
     #[test]
@@ -368,7 +368,7 @@ mod tests {
         let element = create_summary_view_from_people(&people, &[], &[None, None, None, None]);
 
         // Should have created element successfully
-        assert!(element.as_widget().children().len() > 0);
+        assert!(!element.as_widget().children().is_empty());
     }
 
     #[test]
@@ -394,7 +394,7 @@ mod tests {
         let element = create_summary_view_from_people(&people, &[], &[None, None, None, None]);
 
         // Verify element is created
-        assert!(element.as_widget().children().len() > 0);
+        assert!(!element.as_widget().children().is_empty());
     }
 
     #[test]
@@ -414,6 +414,6 @@ mod tests {
         let people = vec![person];
         let element = create_summary_view_from_people(&people, &[], &[None, None, None, None]);
 
-        assert!(element.as_widget().children().len() > 0);
+        assert!(!element.as_widget().children().is_empty());
     }
 }
