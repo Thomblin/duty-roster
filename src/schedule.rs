@@ -12,19 +12,23 @@ pub mod person_state;
 pub use person_state::GroupState;
 pub use person_state::PersonState;
 
+/// display name for a member, including the group name unless suppressed by config
+pub fn display_name(member_name: &str, group_name: &str, config: &Config) -> String {
+    if config.config.show_group_name {
+        format!("{member_name} {group_name}")
+    } else {
+        member_name.to_string()
+    }
+}
+
 pub(crate) fn create_people(config: &Config) -> Vec<PersonState> {
     let mut people: Vec<PersonState> = vec![];
 
     for group in &config.group {
         let group_state = Rc::new(RefCell::new(GroupState::default()));
         for member in &group.members {
-            let name = if config.config.show_group_name {
-                format!("{} {}", member.name, group.name)
-            } else {
-                member.name.clone()
-            };
             people.push(PersonState::new(
-                name,
+                display_name(&member.name, &group.name, config),
                 group.place.clone(),
                 Rc::clone(&group_state),
             ));

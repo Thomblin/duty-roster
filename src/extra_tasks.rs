@@ -3,7 +3,7 @@
 use std::collections::{BTreeSet, HashMap};
 
 use crate::config::Config;
-use crate::schedule::Assignment;
+use crate::schedule::{Assignment, display_name};
 
 /// Apply extra tasks to existing assignments.
 /// Resets any previously applied icons, then fairly distributes each extra task
@@ -28,7 +28,7 @@ pub fn apply_extra_tasks(assignments: &mut Vec<Assignment>, config: &Config) {
         for key in [group.name.as_str(), group.place.as_str()] {
             let entry = group_members.entry(key).or_default();
             for member in &group.members {
-                entry.insert(format!("{} {}", member.name, group.name));
+                entry.insert(display_name(&member.name, &group.name, config));
             }
         }
     }
@@ -525,7 +525,9 @@ mod tests {
         // 88 dates, 11 Sonn-eligible + 10 Stern-eligible = 21 people for 🪟
         // Each date: one Sonn person + one Stern person assigned.
         // People appear in round-robin order across their group.
-        use crate::config::{Config, ConfigOptions, Dates, ExtraTask, Group, Member, Places, Rules};
+        use crate::config::{
+            Config, ConfigOptions, Dates, ExtraTask, Group, Member, Places, Rules,
+        };
         use chrono::Weekday;
 
         // Use pool sizes that divide evenly into 88 to avoid unequal appearances.

@@ -341,14 +341,14 @@ pub fn view(app: &DutyRosterApp) -> Element<'_, Message> {
                         cfg.group
                             .iter()
                             .find(|g| {
-                                g.members
-                                    .iter()
-                                    .any(|m| format!("{} {}", m.name, g.name) == base)
+                                g.members.iter().any(|m| {
+                                    crate::schedule::display_name(&m.name, &g.name, &cfg) == base
+                                })
                             })
                             .map(|g| {
                                 g.members
                                     .iter()
-                                    .map(|m| format!("{} {}", m.name, g.name))
+                                    .map(|m| crate::schedule::display_name(&m.name, &g.name, &cfg))
                                     .filter(|n| n != &base)
                                     .collect()
                             })
