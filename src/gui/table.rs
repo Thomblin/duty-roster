@@ -123,29 +123,18 @@ impl TableState {
             return None;
         }
 
-        // Get the date from the row index
-        let date = match self.dates.get(pos.row - 1) {
-            // -1 because row 0 is header
-            Some(date) => *date,
-            None => return None,
-        };
+        // Get the date from the row index (-1 because row 0 is header)
+        let date = *self.dates.get(pos.row - 1)?;
 
-        // Get the place from the column index
-        let place: String = match places_vec.get(pos.column - 1) {
-            // -1 because column 0 is date
-            Some(place) => place.clone(),
-            None => return None,
-        };
+        // Get the place from the column index (-1 because column 0 is date)
+        let place: String = places_vec.get(pos.column - 1)?.clone();
 
         // Get the person from the assignments
-        let person: String = match self
+        let person: String = self
             .data
             .get(&date)
-            .and_then(|row: &BTreeMap<String, String>| row.get(&place))
-        {
-            Some(person) => person.clone(),
-            None => return None,
-        };
+            .and_then(|row: &BTreeMap<String, String>| row.get(&place))?
+            .clone();
 
         Some((date, place, person))
     }
