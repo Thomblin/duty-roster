@@ -7,11 +7,33 @@ use std::fs;
 /// configuration root
 #[derive(Deserialize, Debug)]
 pub struct Config {
+    #[serde(default)]
+    pub config: ConfigOptions,
     pub dates: Dates,
     pub places: Places,
     pub group: Vec<Group>,
     pub rules: Rules,
     pub extra_task: Option<Vec<ExtraTask>>,
+}
+
+/// general display/behavior options
+#[derive(Deserialize, Debug)]
+pub struct ConfigOptions {
+    /// whether to show the group name next to the member name in the table/csv output
+    #[serde(default = "default_true")]
+    pub show_group_name: bool,
+}
+
+impl Default for ConfigOptions {
+    fn default() -> Self {
+        Self {
+            show_group_name: true,
+        }
+    }
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// an additional task to be distributed across eligible group members

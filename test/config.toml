@@ -1,3 +1,6 @@
+[config]
+show_group_name = true
+
 [dates]
 from = "2025-01-01" # first day of the resulting schedule
 to = "2025-12-31" # last day of the resulting schedule

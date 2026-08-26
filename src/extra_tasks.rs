@@ -254,7 +254,7 @@ pub fn apply_extra_tasks(assignments: &mut Vec<Assignment>, config: &Config) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{Config, Dates, ExtraTask, Group, Member, Places, Rules};
+    use crate::config::{Config, ConfigOptions, Dates, ExtraTask, Group, Member, Places, Rules};
     use chrono::{NaiveDate, Weekday};
 
     fn date(y: i32, m: u32, d: u32) -> NaiveDate {
@@ -304,6 +304,9 @@ mod tests {
                 filter: vec![],
             },
             extra_task: Some(extra_tasks),
+            config: ConfigOptions {
+                show_group_name: true,
+            },
         }
     }
 
@@ -522,7 +525,7 @@ mod tests {
         // 88 dates, 11 Sonn-eligible + 10 Stern-eligible = 21 people for 🪟
         // Each date: one Sonn person + one Stern person assigned.
         // People appear in round-robin order across their group.
-        use crate::config::{Config, Dates, ExtraTask, Group, Member, Places, Rules};
+        use crate::config::{Config, ConfigOptions, Dates, ExtraTask, Group, Member, Places, Rules};
         use chrono::Weekday;
 
         // Use pool sizes that divide evenly into 88 to avoid unequal appearances.
@@ -595,6 +598,9 @@ mod tests {
                         .collect(),
                 },
             ]),
+            config: ConfigOptions {
+                show_group_name: true,
+            },
         };
 
         let mut assignments = Vec::new();

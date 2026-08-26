@@ -18,8 +18,13 @@ pub(crate) fn create_people(config: &Config) -> Vec<PersonState> {
     for group in &config.group {
         let group_state = Rc::new(RefCell::new(GroupState::default()));
         for member in &group.members {
+            let name = if config.config.show_group_name {
+                format!("{} {}", member.name, group.name)
+            } else {
+                member.name.clone()
+            };
             people.push(PersonState::new(
-                format!("{} {}", member.name, group.name),
+                name,
                 group.place.clone(),
                 Rc::clone(&group_state),
             ));
