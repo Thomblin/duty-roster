@@ -66,6 +66,9 @@ Create a TOML configuration file based on the example in [test/schedule.toml](te
 Example configuration:
 
 ```toml
+[config]
+show_group_name = true # show/hide group name in table and csv
+
 [dates]
 from = "2025-09-01" # first day of the resulting schedule
 to = "2025-09-30" # last day of the resulting schedule
